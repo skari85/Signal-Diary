@@ -1,27 +1,20 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import PerformanceMonitor from "@/components/performance-monitor"
+import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: 'swap',
+  preload: true,
+})
 
 export const metadata: Metadata = {
   title: "Signal Diary - Track Phone Signal Issues",
   description: "A simple app to help elderly users log and track phone signal problems",
   manifest: "/manifest.json",
-  themeColor: "#f59e0b",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: "cover",
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Signal Diary",
-  },
   formatDetection: {
     telephone: false,
   },
@@ -35,7 +28,21 @@ export const metadata: Metadata = {
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
     ],
   },
-    generator: 'v0.dev'
+  generator: 'v0.dev',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Signal Diary",
+  },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#f59e0b",
 }
 
 export default function RootLayout({
@@ -67,6 +74,10 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
         <link rel="shortcut icon" href="/favicon.ico" />
 
+        {/* Preload critical resources */}
+        <link rel="preload" href="/icons/icon-192x192.png" as="image" />
+        <link rel="preload" href="/signal-diary-logo.png" as="image" />
+
         {/* Service Worker Registration */}
         <script
           dangerouslySetInnerHTML={{
@@ -86,7 +97,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        {children}
+        <PerformanceMonitor />
+        <Toaster />
+      </body>
     </html>
   )
 }

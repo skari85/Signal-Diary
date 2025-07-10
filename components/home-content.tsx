@@ -1,24 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SignalZero, PhoneOff, MessageSquareX, History, Download, User, MapPin } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
+import OptimizedImage from "./optimized-image"
 
 // Add these imports at the top
 import PWAInstallPrompt from "./pwa-install-prompt"
 import OfflineIndicator from "./offline-indicator"
-
-interface LogEntry {
-  id: string
-  type: "no-signal" | "call-failed" | "message-failed"
-  location: string
-  timestamp: string
-}
+import { useSignalDiary } from "@/hooks/use-signal-diary"
+import { toast } from "@/hooks/use-toast"
 
 const COMMON_LOCATIONS = [
   "Kitchen",
@@ -37,69 +32,80 @@ const COMMON_LOCATIONS = [
   "Hallway",
   "Balcony",
   "Other",
-]
+] as const
 
 export default function HomeContent() {
   const [location, setLocation] = useState("")
   const [useDropdown, setUseDropdown] = useState(true)
-  const [recentLocations, setRecentLocations] = useState<string[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const { addLogEntry, recentLocations } = useSignalDiary()
 
-  useEffect(() => {
-    // Load recent locations from logs
-    const savedLogs = localStorage.getItem("signal-diary-logs")
-    if (savedLogs) {
-      const logs = JSON.parse(savedLogs)
-      const locations = logs
-        .map((log: LogEntry) => log.location)
-        .filter((loc: string) => loc && loc !== "Not specified")
-
-      // Get unique locations, most recent first
-      const uniqueLocations = [...new Set(locations)].slice(0, 5)
-      setRecentLocations(uniqueLocations)
+  // Memoize the addLogEntry function
+  const handleAddLogEntry = useCallback(async (type: "no-signal" | "call-failed" | "message-failed") => {
+    if (isSubmitting) return
+    
+    setIsSubmitting(true)
+    
+    try {
+      await addLogEntry(type, location)
+      setLocation("")
+      toast({
+        title: "Log submitted!",
+        description: `Issue logged successfully in ${location || "Not specified"}.`,
+      })
+    } catch (error) {
+      console.error('Error logging entry:', error)
+      toast({
+        title: "Failed to log issue",
+        description: "Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
-  }, [])
+  }, [addLogEntry, location, isSubmitting])
 
-  const addLogEntry = (type: LogEntry["type"]) => {
-    const finalLocation = location || "Not specified"
-
-    const newEntry: LogEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type,
-      location: finalLocation,
-      timestamp: new Date().toISOString(),
-    }
-
-    const existingLogs = localStorage.getItem("signal-diary-logs")
-    const logs = existingLogs ? JSON.parse(existingLogs) : []
-    const updatedLogs = [newEntry, ...logs]
-
-    localStorage.setItem("signal-diary-logs", JSON.stringify(updatedLogs))
-
-    // Update recent locations
-    if (finalLocation !== "Not specified") {
-      const newRecentLocations = [finalLocation, ...recentLocations.filter((loc) => loc !== finalLocation)].slice(0, 5)
-      setRecentLocations(newRecentLocations)
-    }
-
-    setLocation("")
-
-    // Show confirmation with location
-    alert(`Issue logged successfully in ${finalLocation}!`)
-  }
-
-  const handleLocationSelect = (value: string) => {
+  // Memoize location select handler
+  const handleLocationSelect = useCallback((value: string) => {
     if (value === "Other") {
       setUseDropdown(false)
       setLocation("")
     } else {
       setLocation(value)
     }
-  }
+  }, [])
 
-  const switchToDropdown = () => {
+  // Memoize switch to dropdown handler
+  const switchToDropdown = useCallback(() => {
     setUseDropdown(true)
     setLocation("")
-  }
+  }, [])
+
+  // Memoize action buttons to prevent unnecessary re-renders
+  const actionButtons = useMemo(() => [
+    {
+      type: "no-signal" as const,
+      label: "No Signal",
+      icon: SignalZero,
+      className: "bg-red-500 hover:bg-red-600",
+      disabled: isSubmitting
+    },
+    {
+      type: "call-failed" as const,
+      label: "Call Failed", 
+      icon: PhoneOff,
+      className: "bg-orange-500 hover:bg-orange-600",
+      disabled: isSubmitting
+    },
+    {
+      type: "message-failed" as const,
+      label: "Message Didn't Send",
+      icon: MessageSquareX,
+      className: "bg-blue-500 hover:bg-blue-600", 
+      disabled: isSubmitting
+    }
+  ], [isSubmitting])
 
   return (
     <div className="min-h-screen bg-amber-50 p-4">
@@ -107,12 +113,13 @@ export default function HomeContent() {
         {/* Header */}
         <div className="text-center py-4">
           <div className="flex justify-center mb-4">
-            <Image
+            <OptimizedImage
               src="/signal-diary-logo.png"
               alt="Signal Diary Logo"
               width={80}
               height={80}
               className="rounded-2xl"
+              priority
             />
           </div>
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Signal Diary</h1>
@@ -137,7 +144,7 @@ export default function HomeContent() {
                   <SelectContent>
                     {recentLocations.length > 0 && (
                       <>
-                        <SelectItem value="" disabled className="font-semibold text-blue-600">
+                        <SelectItem value="header-recent" disabled className="font-semibold text-blue-600">
                           Recent Locations
                         </SelectItem>
                         {recentLocations.map((loc) => (
@@ -145,7 +152,7 @@ export default function HomeContent() {
                             📍 {loc}
                           </SelectItem>
                         ))}
-                        <SelectItem value="" disabled className="font-semibold text-slate-600">
+                        <SelectItem value="header-common" disabled className="font-semibold text-slate-600">
                           Common Locations
                         </SelectItem>
                       </>
@@ -170,11 +177,13 @@ export default function HomeContent() {
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="Type your location (e.g., Kitchen, Porch)"
                   className="h-12 text-lg border-2 border-slate-300 rounded-lg"
+                  disabled={isSubmitting}
                 />
                 <Button
                   onClick={switchToDropdown}
                   variant="outline"
                   className="w-full h-10 text-sm border-2 border-slate-300 rounded-lg bg-transparent"
+                  disabled={isSubmitting}
                 >
                   Or choose from common locations
                 </Button>
@@ -192,29 +201,17 @@ export default function HomeContent() {
             <CardTitle className="text-xl text-center text-slate-700">What happened?</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button
-              onClick={() => addLogEntry("no-signal")}
-              className="w-full h-16 text-xl bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl shadow-md"
-            >
-              <SignalZero className="w-8 h-8 mr-3" />
-              No Signal
-            </Button>
-
-            <Button
-              onClick={() => addLogEntry("call-failed")}
-              className="w-full h-16 text-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl shadow-md"
-            >
-              <PhoneOff className="w-8 h-8 mr-3" />
-              Call Failed
-            </Button>
-
-            <Button
-              onClick={() => addLogEntry("message-failed")}
-              className="w-full h-16 text-xl bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl shadow-md"
-            >
-              <MessageSquareX className="w-8 h-8 mr-3" />
-              Message Didn't Send
-            </Button>
+            {actionButtons.map(({ type, label, icon: Icon, className, disabled }) => (
+              <Button
+                key={type}
+                onClick={() => handleAddLogEntry(type)}
+                className={`w-full h-16 text-xl text-white font-semibold rounded-xl shadow-md ${className}`}
+                disabled={disabled}
+              >
+                <Icon className="w-8 h-8 mr-3" />
+                {label}
+              </Button>
+            ))}
           </CardContent>
         </Card>
 

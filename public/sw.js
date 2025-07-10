@@ -1,119 +1,253 @@
-const CACHE_NAME = "signal-diary-v1"
-const urlsToCache = [
-  "/",
-  "/history",
-  "/export",
-  "/manifest.json",
-  "/signal-diary-logo.png",
-  "/icons/icon-192x192.png",
-  "/icons/icon-512x512.png",
-  // Add other static assets as needed
+const CACHE_NAME = 'signal-diary-v1.0.0'
+const STATIC_CACHE_NAME = 'signal-diary-static-v1.0.0'
+const DYNAMIC_CACHE_NAME = 'signal-diary-dynamic-v1.0.0'
+
+// Files to cache immediately
+const STATIC_FILES = [
+  '/',
+  '/manifest.json',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/signal-diary-logo.png',
+  '/offline.html'
 ]
 
-// Install event - cache resources
-self.addEventListener("install", (event) => {
+// Install event - cache static files
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
+    caches.open(STATIC_CACHE_NAME)
       .then((cache) => {
-        console.log("Opened cache")
-        return cache.addAll(urlsToCache)
+        console.log('Caching static files')
+        return cache.addAll(STATIC_FILES)
+      })
+      .then(() => {
+        console.log('Static files cached successfully')
+        return self.skipWaiting()
       })
       .catch((error) => {
-        console.error("Failed to cache resources:", error)
-      }),
+        console.error('Error caching static files:', error)
+      })
   )
-  // Force the waiting service worker to become the active service worker
-  self.skipWaiting()
 })
 
 // Activate event - clean up old caches
-self.addEventListener("activate", (event) => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log("Deleting old cache:", cacheName)
-            return caches.delete(cacheName)
-          }
-        }),
-      )
-    }),
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== STATIC_CACHE_NAME && cacheName !== DYNAMIC_CACHE_NAME) {
+              console.log('Deleting old cache:', cacheName)
+              return caches.delete(cacheName)
+            }
+          })
+        )
+      })
+      .then(() => {
+        console.log('Service Worker activated')
+        return self.clients.claim()
+      })
   )
-  // Ensure the service worker takes control immediately
-  self.clients.claim()
 })
 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener("fetch", (event) => {
+// Fetch event - serve from cache or network
+self.addEventListener('fetch', (event) => {
+  const { request } = event
+  const url = new URL(request.url)
+
   // Skip non-GET requests
-  if (event.request.method !== "GET") {
+  if (request.method !== 'GET') {
     return
   }
 
   // Skip chrome-extension and other non-http requests
-  if (!event.request.url.startsWith("http")) {
+  if (!url.protocol.startsWith('http')) {
     return
   }
 
-  event.respondWith(
-    caches
-      .match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        if (response) {
-          return response
-        }
+  // Handle API requests differently
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(handleApiRequest(request))
+    return
+  }
 
-        return fetch(event.request).then((response) => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type !== "basic") {
-            return response
-          }
+  // Handle static assets
+  if (isStaticAsset(request)) {
+    event.respondWith(handleStaticAsset(request))
+    return
+  }
 
-          // Clone the response
-          const responseToCache = response.clone()
+  // Handle navigation requests
+  if (request.mode === 'navigate') {
+    event.respondWith(handleNavigationRequest(request))
+    return
+  }
 
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache)
-          })
-
-          return response
-        })
-      })
-      .catch(() => {
-        // Return offline page for navigation requests
-        if (event.request.mode === "navigate") {
-          return caches.match("/")
-        }
-      }),
-  )
+  // Default: try network first, fallback to cache
+  event.respondWith(handleDefaultRequest(request))
 })
 
-// Background sync for when the app comes back online
-self.addEventListener("sync", (event) => {
-  if (event.tag === "background-sync") {
-    console.log("Background sync triggered")
-    // Here you could sync any pending data when the app comes back online
+// Handle API requests - network only
+async function handleApiRequest(request) {
+  try {
+    const response = await fetch(request)
+    return response
+  } catch (error) {
+    console.error('API request failed:', error)
+    return new Response(JSON.stringify({ error: 'Network error' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+}
+
+// Handle static assets - cache first
+async function handleStaticAsset(request) {
+  const cache = await caches.open(STATIC_CACHE_NAME)
+  const cachedResponse = await cache.match(request)
+  
+  if (cachedResponse) {
+    return cachedResponse
+  }
+
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      cache.put(request, response.clone())
+    }
+    return response
+  } catch (error) {
+    console.error('Static asset fetch failed:', error)
+    return new Response('Asset not available offline', { status: 404 })
+  }
+}
+
+// Handle navigation requests - network first with cache fallback
+async function handleNavigationRequest(request) {
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      const cache = await caches.open(DYNAMIC_CACHE_NAME)
+      cache.put(request, response.clone())
+    }
+    return response
+  } catch (error) {
+    console.log('Navigation request failed, trying cache:', error)
+    const cache = await caches.open(DYNAMIC_CACHE_NAME)
+    const cachedResponse = await cache.match(request)
+    
+    if (cachedResponse) {
+      return cachedResponse
+    }
+
+    // Return offline page
+    const offlineResponse = await cache.match('/offline.html')
+    if (offlineResponse) {
+      return offlineResponse
+    }
+
+    return new Response('Offline', { status: 503 })
+  }
+}
+
+// Handle default requests - network first
+async function handleDefaultRequest(request) {
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      const cache = await caches.open(DYNAMIC_CACHE_NAME)
+      cache.put(request, response.clone())
+    }
+    return response
+  } catch (error) {
+    console.log('Request failed, trying cache:', error)
+    const cache = await caches.open(DYNAMIC_CACHE_NAME)
+    const cachedResponse = await cache.match(request)
+    
+    if (cachedResponse) {
+      return cachedResponse
+    }
+
+    return new Response('Not available offline', { status: 503 })
+  }
+}
+
+// Check if request is for a static asset
+function isStaticAsset(request) {
+  const url = new URL(request.url)
+  return (
+    url.pathname.startsWith('/icons/') ||
+    url.pathname.startsWith('/images/') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.jpg') ||
+    url.pathname.endsWith('.jpeg') ||
+    url.pathname.endsWith('.gif') ||
+    url.pathname.endsWith('.svg') ||
+    url.pathname.endsWith('.woff') ||
+    url.pathname.endsWith('.woff2') ||
+    url.pathname.endsWith('.ttf') ||
+    url.pathname.endsWith('.eot')
+  )
+}
+
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-sync') {
+    event.waitUntil(doBackgroundSync())
   }
 })
 
-// Push notification support (for future use)
-self.addEventListener("push", (event) => {
+async function doBackgroundSync() {
+  try {
+    // Handle any pending offline actions
+    console.log('Performing background sync')
+    // Add your background sync logic here
+  } catch (error) {
+    console.error('Background sync failed:', error)
+  }
+}
+
+// Push notification handling
+self.addEventListener('push', (event) => {
   if (event.data) {
     const data = event.data.json()
     const options = {
       body: data.body,
-      icon: "/icons/icon-192x192.png",
-      badge: "/icons/icon-72x72.png",
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
       vibrate: [100, 50, 100],
       data: {
         dateOfArrival: Date.now(),
-        primaryKey: 1,
+        primaryKey: 1
       },
+      actions: [
+        {
+          action: 'explore',
+          title: 'View Details',
+          icon: '/icons/icon-72x72.png'
+        },
+        {
+          action: 'close',
+          title: 'Close',
+          icon: '/icons/icon-72x72.png'
+        }
+      ]
     }
 
-    event.waitUntil(self.registration.showNotification(data.title, options))
+    event.waitUntil(
+      self.registration.showNotification(data.title, options)
+    )
+  }
+})
+
+// Notification click handling
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+
+  if (event.action === 'explore') {
+    event.waitUntil(
+      clients.openWindow('/')
+    )
   }
 })
