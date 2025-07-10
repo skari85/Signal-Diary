@@ -1,64 +1,46 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { WifiOff, Wifi } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { WifiOff } from "lucide-react"
 
 export default function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(true)
-  const [showIndicator, setShowIndicator] = useState(false)
+  const [showOfflineMessage, setShowOfflineMessage] = useState(false)
 
   useEffect(() => {
-    const updateOnlineStatus = () => {
-      const online = navigator.onLine
-      setIsOnline(online)
-
-      if (!online) {
-        setShowIndicator(true)
-      } else {
-        // Show "back online" message briefly
-        if (!isOnline) {
-          setShowIndicator(true)
-          setTimeout(() => setShowIndicator(false), 3000)
-        }
-      }
+    const handleOnline = () => {
+      setIsOnline(true)
+      setShowOfflineMessage(false)
     }
 
-    // Set initial status
-    updateOnlineStatus()
+    const handleOffline = () => {
+      setIsOnline(false)
+      setShowOfflineMessage(true)
+    }
 
-    window.addEventListener("online", updateOnlineStatus)
-    window.addEventListener("offline", updateOnlineStatus)
+    // Set initial state
+    setIsOnline(navigator.onLine)
+
+    window.addEventListener("online", handleOnline)
+    window.addEventListener("offline", handleOffline)
 
     return () => {
-      window.removeEventListener("online", updateOnlineStatus)
-      window.removeEventListener("offline", updateOnlineStatus)
+      window.removeEventListener("online", handleOnline)
+      window.removeEventListener("offline", handleOffline)
     }
-  }, [isOnline])
+  }, [])
 
-  if (!showIndicator) {
+  if (!showOfflineMessage) {
     return null
   }
 
   return (
-    <Card
-      className={`border-2 shadow-lg ${isOnline ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"}`}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          {isOnline ? <Wifi className="w-6 h-6 text-green-600" /> : <WifiOff className="w-6 h-6 text-orange-600" />}
-          <div>
-            <h3 className={`font-semibold ${isOnline ? "text-green-900" : "text-orange-900"}`}>
-              {isOnline ? "Back Online" : "You're Offline"}
-            </h3>
-            <p className={`text-sm ${isOnline ? "text-green-800" : "text-orange-800"}`}>
-              {isOnline
-                ? "Your connection has been restored."
-                : "Don't worry - you can still log signal issues. They'll be saved locally."}
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <Alert className="fixed top-4 left-4 right-4 z-50 shadow-lg md:left-auto md:right-4 md:w-80">
+      <WifiOff className="h-4 w-4" />
+      <AlertDescription>
+        You're offline. The app will continue to work, and your data will sync when you're back online.
+      </AlertDescription>
+    </Alert>
   )
 }
