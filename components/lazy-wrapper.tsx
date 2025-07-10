@@ -34,4 +34,4 @@ export default function LazyWrapper({
 export const LazyHistoryContent = lazy(() => import('./history-content'))
 export const LazyPatternsContent = lazy(() => import('./patterns-content'))
 export const LazyExportContent = lazy(() => import('./export-content'))
-export const LazySettingsContent = lazy(() => import('./settings-content')) 
+export const LazySettingsContent = lazy(() => import('./settings-content'))

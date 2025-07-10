@@ -21,4 +21,4 @@ if (!fs.existsSync(outputDir)) {
     console.log(`Generated ${outPath}`);
   }
   console.log('All icons generated!');
-})(); 
+})();

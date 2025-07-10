@@ -31,4 +31,4 @@ sizes.forEach(size => {
   console.log(`Created ${filename.replace('.png', '.svg')}`);
 });
 
-console.log('Icon generation complete! Note: These are SVG placeholders. For production, convert to PNG.'); 
+console.log('Icon generation complete! Note: These are SVG placeholders. For production, convert to PNG.');
