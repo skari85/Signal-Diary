@@ -12,7 +12,6 @@ import {
   Monitor,
   Smartphone,
   Heart,
-  Star,
   ArrowRight,
   CheckCircle,
 } from "lucide-react"
@@ -95,7 +94,7 @@ export default function LandingPage() {
             </a>
           </div>
 
-          {/* Trust Indicators */}
+          {/* Features Overview */}
           <div className="flex flex-wrap justify-center gap-8 text-sm text-slate-500">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
@@ -103,7 +102,7 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              <span>Caregiver Friendly</span>
+              <span>Elderly Friendly</span>
             </div>
             <div className="flex items-center gap-2">
               <Download className="w-4 h-4" />
@@ -261,93 +260,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-16 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Trusted by Users and Caregivers</h2>
-            <p className="text-xl text-slate-600">See how Signal Diary helps families stay connected</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-amber-200">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-slate-600 mb-4">
-                  "Finally, a simple way to track my mom's phone problems. The reports helped us get better service from
-                  her provider."
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                    S
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">Sarah M.</p>
-                    <p className="text-sm text-slate-600">Caregiver</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-green-200">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-slate-600 mb-4">
-                  "Easy to use even for someone like me who's not tech-savvy. The big buttons and clear instructions
-                  make it perfect."
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
-                    R
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">Robert K.</p>
-                    <p className="text-sm text-slate-600">Age 78</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-purple-200">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-slate-600 mb-4">
-                  "The pattern analysis showed us exactly when and where the problems were happening. Our provider fixed
-                  the tower!"
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                    M
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">Maria L.</p>
-                    <p className="text-sm text-slate-600">Family Member</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-16 px-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Start Tracking Signal Issues Today</h2>
           <p className="text-xl mb-8 text-amber-100">
-            Join thousands of users who have improved their phone service with Signal Diary
+            Simple, privacy-first tools to help document and resolve phone signal problems
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">

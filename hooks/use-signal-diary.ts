@@ -1,166 +1,106 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 
 export interface LogEntry {
   id: string
-  type: "no-signal" | "call-failed" | "message-failed"
+  type: "no_signal" | "call_failed" | "message_failed"
   location: string
   timestamp: string
+  notes?: string
 }
-
-const STORAGE_KEY = "signal-diary-logs"
 
 export function useSignalDiary() {
   const [logs, setLogs] = useState<LogEntry[]>([])
-  const [recentLocations, setRecentLocations] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
-  // Load logs from localStorage
-  const loadLogs = useCallback(() => {
-    try {
-      const savedLogs = localStorage.getItem(STORAGE_KEY)
-      if (savedLogs) {
-        const parsedLogs = JSON.parse(savedLogs) as LogEntry[]
-        setLogs(parsedLogs)
-
-        // Extract recent locations
-        const locations = parsedLogs
-          .map((log) => log.location)
-          .filter((loc): loc is string => loc !== null && loc !== undefined && loc !== "Not specified")
-
-        const uniqueLocations = Array.from(new Set(locations)).slice(0, 5)
-        setRecentLocations(uniqueLocations)
-      }
-    } catch (error) {
-      console.error("Error loading logs:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  // Add new log entry
-  const addLogEntry = useCallback(
-    async (type: LogEntry["type"], location: string) => {
-      const finalLocation = location || "Not specified"
-
-      const newEntry: LogEntry = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        type,
-        location: finalLocation,
-        timestamp: new Date().toISOString(),
-      }
-
-      try {
-        const updatedLogs = [newEntry, ...logs]
-        setLogs(updatedLogs)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLogs))
-
-        // Update recent locations
-        if (finalLocation !== "Not specified") {
-          const newRecentLocations = [finalLocation, ...recentLocations.filter((loc) => loc !== finalLocation)].slice(
-            0,
-            5,
-          )
-          setRecentLocations(newRecentLocations)
-        }
-
-        return newEntry
-      } catch (error) {
-        console.error("Error adding log entry:", error)
-        throw error
-      }
-    },
-    [logs, recentLocations],
-  )
-
-  // Delete log entry
-  const deleteLogEntry = useCallback(
-    (id: string) => {
-      try {
-        const updatedLogs = logs.filter((log) => log.id !== id)
-        setLogs(updatedLogs)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLogs))
-      } catch (error) {
-        console.error("Error deleting log entry:", error)
-        throw error
-      }
-    },
-    [logs],
-  )
-
-  // Clear all logs
-  const clearLogs = useCallback(() => {
-    try {
-      setLogs([])
-      setRecentLocations([])
-      localStorage.removeItem(STORAGE_KEY)
-    } catch (error) {
-      console.error("Error clearing logs:", error)
-      throw error
-    }
-  }, [])
-
-  // Export logs as JSON
-  const exportLogs = useCallback(() => {
-    try {
-      const dataStr = JSON.stringify(logs, null, 2)
-      const dataBlob = new Blob([dataStr], { type: "application/json" })
-      const url = URL.createObjectURL(dataBlob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `signal-diary-logs-${new Date().toISOString().split("T")[0]}.json`
-      link.click()
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error("Error exporting logs:", error)
-      throw error
-    }
-  }, [logs])
-
-  // Get logs by type
-  const getLogsByType = useCallback(
-    (type: LogEntry["type"]) => {
-      return logs.filter((log) => log.type === type)
-    },
-    [logs],
-  )
-
-  // Get logs by location
-  const getLogsByLocation = useCallback(
-    (location: string) => {
-      return logs.filter((log) => log.location === location)
-    },
-    [logs],
-  )
-
-  // Get logs by date range
-  const getLogsByDateRange = useCallback(
-    (startDate: Date, endDate: Date) => {
-      return logs.filter((log) => {
-        const logDate = new Date(log.timestamp)
-        return logDate >= startDate && logDate <= endDate
-      })
-    },
-    [logs],
-  )
-
-  // Load logs on mount
   useEffect(() => {
-    loadLogs()
-  }, [loadLogs])
+    setMounted(true)
+    const savedLogs = localStorage.getItem("signal-diary-logs")
+    if (savedLogs) {
+      try {
+        const parsedLogs = JSON.parse(savedLogs) as LogEntry[]
+        setLogs(Array.isArray(parsedLogs) ? parsedLogs : [])
+      } catch (error) {
+        console.error("Error parsing saved logs:", error)
+        setLogs([])
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem("signal-diary-logs", JSON.stringify(logs))
+    }
+  }, [logs, mounted])
+
+  const addLog = (entry: Omit<LogEntry, "id">) => {
+    const newEntry: LogEntry = {
+      ...entry,
+      id: Date.now().toString(),
+    }
+    setLogs((prev) => [...prev, newEntry])
+  }
+
+  const deleteLog = (id: string) => {
+    setLogs((prev) => prev.filter((log) => log.id !== id))
+  }
+
+  const getWeeklyStats = () => {
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+
+    const weeklyLogs = logs.filter((log) => new Date(log.timestamp) >= oneWeekAgo)
+
+    return {
+      total: weeklyLogs.length,
+      no_signal: weeklyLogs.filter((log) => log.type === "no_signal").length,
+      call_failed: weeklyLogs.filter((log) => log.type === "call_failed").length,
+      message_failed: weeklyLogs.filter((log) => log.type === "message_failed").length,
+    }
+  }
+
+  const getRecentLocations = (): string[] => {
+    const locationCounts = logs.reduce(
+      (acc, log) => {
+        acc[log.location] = (acc[log.location] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>,
+    )
+
+    return Object.entries(locationCounts)
+      .sort(([, a], [, b]) => b - a)
+      .map(([location]) => location)
+      .filter((location): location is string => Boolean(location))
+  }
+
+  const exportData = () => {
+    const csvContent = [
+      "Date,Time,Issue Type,Location,Notes",
+      ...logs.map((log) => {
+        const date = new Date(log.timestamp)
+        return `${date.toLocaleDateString()},${date.toLocaleTimeString()},${log.type.replace("_", " ")},${log.location},"${log.notes || ""}"`
+      }),
+    ].join("\n")
+
+    const blob = new Blob([csvContent], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `signal-diary-${new Date().toISOString().split("T")[0]}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   return {
     logs,
-    recentLocations,
-    isLoading,
-    addLogEntry,
-    deleteLogEntry,
-    clearLogs,
-    exportLogs,
-    getLogsByType,
-    getLogsByLocation,
-    getLogsByDateRange,
-    loadLogs,
+    addLog,
+    deleteLog,
+    getWeeklyStats,
+    getRecentLocations,
+    exportData,
   }
 }
