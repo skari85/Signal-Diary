@@ -1,21 +1,24 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SignalZero, PhoneOff, MessageSquareX, History, Download, User, MapPin } from "lucide-react"
-import Link from "next/link"
-import OptimizedImage from "./optimized-image"
+import { SignalZero, PhoneOff, MessageSquareX, History, BarChart3, Settings, Wifi } from "lucide-react"
+import { useRouter } from "next/navigation"
+import PWAInstallPrompt from "@/components/pwa-install-prompt"
+import OfflineIndicator from "@/components/offline-indicator"
 
-// Add these imports at the top
-import PWAInstallPrompt from "./pwa-install-prompt"
-import OfflineIndicator from "./offline-indicator"
-import { useSignalDiary } from "@/hooks/use-signal-diary"
-import { toast } from "@/hooks/use-toast"
+interface SignalLog {
+  id: string
+  type: "no_signal" | "call_failed" | "message_failed"
+  location: string
+  timestamp: string
+}
 
-const COMMON_LOCATIONS = [
+const commonLocations = [
   "Kitchen",
   "Living Room",
   "Bedroom",
@@ -23,231 +26,271 @@ const COMMON_LOCATIONS = [
   "Porch",
   "Stairs",
   "Basement",
-  "Attic",
   "Garage",
-  "Backyard",
-  "Front Yard",
-  "Dining Room",
+  "Garden",
   "Office",
-  "Hallway",
-  "Balcony",
-  "Other",
-] as const
+]
 
 export default function HomeContent() {
+  const [mounted, setMounted] = useState(false)
   const [location, setLocation] = useState("")
-  const [useDropdown, setUseDropdown] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  
-  const { addLogEntry, recentLocations } = useSignalDiary()
+  const [useCustomLocation, setUseCustomLocation] = useState(false)
+  const [recentLocations, setRecentLocations] = useState<string[]>([])
+  const [logs, setLogs] = useState<SignalLog[]>([])
+  const router = useRouter()
 
-  // Memoize the addLogEntry function
-  const handleAddLogEntry = useCallback(async (type: "no-signal" | "call-failed" | "message-failed") => {
-    if (isSubmitting) return
-    
-    setIsSubmitting(true)
-    
-    try {
-      await addLogEntry(type, location)
-      setLocation("")
-      toast({
-        title: "Log submitted!",
-        description: `Issue logged successfully in ${location || "Not specified"}.`,
-      })
-    } catch (error) {
-      console.error('Error logging entry:', error)
-      toast({
-        title: "Failed to log issue",
-        description: "Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }, [addLogEntry, location, isSubmitting])
+  useEffect(() => {
+    setMounted(true)
 
-  // Memoize location select handler
-  const handleLocationSelect = useCallback((value: string) => {
-    if (value === "Other") {
-      setUseDropdown(false)
-      setLocation("")
-    } else {
-      setLocation(value)
+    // Load existing logs and recent locations
+    const savedLogs = localStorage.getItem("signalLogs")
+    if (savedLogs) {
+      const parsedLogs = JSON.parse(savedLogs)
+      setLogs(parsedLogs)
+
+      // Extract recent locations (last 5 unique locations)
+      const locations = parsedLogs
+        .map((log: SignalLog) => log.location)
+        .filter((loc: string) => loc.trim() !== "")
+        .reverse()
+
+      const uniqueLocations = [...new Set(locations)].slice(0, 5)
+      setRecentLocations(uniqueLocations)
     }
   }, [])
 
-  // Memoize switch to dropdown handler
-  const switchToDropdown = useCallback(() => {
-    setUseDropdown(true)
+  const logIssue = (type: "no_signal" | "call_failed" | "message_failed") => {
+    if (!mounted) return
+
+    const newLog: SignalLog = {
+      id: Date.now().toString(),
+      type,
+      location: location.trim() || "Not specified",
+      timestamp: new Date().toISOString(),
+    }
+
+    const updatedLogs = [...logs, newLog]
+    setLogs(updatedLogs)
+    localStorage.setItem("signalLogs", JSON.stringify(updatedLogs))
+
+    // Update recent locations
+    if (location.trim()) {
+      const newRecentLocations = [location.trim(), ...recentLocations.filter((loc) => loc !== location.trim())].slice(
+        0,
+        5,
+      )
+      setRecentLocations(newRecentLocations)
+    }
+
+    // Show confirmation
+    const issueTypes = {
+      no_signal: "No Signal",
+      call_failed: "Call Failed",
+      message_failed: "Message Didn't Send",
+    }
+
+    alert(`${issueTypes[type]} logged successfully${location.trim() ? ` in ${location.trim()}` : ""}!`)
+
+    // Clear location for next entry
     setLocation("")
-  }, [])
+  }
 
-  // Memoize action buttons to prevent unnecessary re-renders
-  const actionButtons = useMemo(() => [
-    {
-      type: "no-signal" as const,
-      label: "No Signal",
-      icon: SignalZero,
-      className: "bg-red-500 hover:bg-red-600",
-      disabled: isSubmitting
-    },
-    {
-      type: "call-failed" as const,
-      label: "Call Failed", 
-      icon: PhoneOff,
-      className: "bg-orange-500 hover:bg-orange-600",
-      disabled: isSubmitting
-    },
-    {
-      type: "message-failed" as const,
-      label: "Message Didn't Send",
-      icon: MessageSquareX,
-      className: "bg-blue-500 hover:bg-blue-600", 
-      disabled: isSubmitting
-    }
-  ], [isSubmitting])
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-amber-50 to-amber-100 p-4">
+        <div className="max-w-md mx-auto">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gray-200 rounded-lg mx-auto mb-4 animate-pulse"></div>
+            <div className="h-8 bg-gray-200 rounded w-48 mx-auto animate-pulse"></div>
+          </div>
+          <div className="space-y-4">
+            <div className="h-16 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="h-16 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="h-16 bg-gray-200 rounded-lg animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-amber-50 p-4">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-amber-100 p-4">
+      <div className="max-w-md mx-auto">
+        <OfflineIndicator />
+        <PWAInstallPrompt />
+
         {/* Header */}
-        <div className="text-center py-4">
-          <div className="flex justify-center mb-4">
-            <OptimizedImage
-              src="/signal-diary-logo.png"
-              alt="Signal Diary Logo"
-              width={80}
-              height={80}
-              className="rounded-2xl"
-              priority
-            />
-          </div>
+        <div className="text-center mb-8">
+          <img
+            src="/signal-diary-logo.png"
+            alt="Signal Diary"
+            width={64}
+            height={64}
+            className="mx-auto mb-4 rounded-lg"
+          />
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Signal Diary</h1>
-          <p className="text-lg text-slate-600">Track your phone signal issues</p>
+          <p className="text-slate-600">Track your phone signal issues</p>
         </div>
 
-        {/* Location Selection */}
-        <Card className="border-2 border-slate-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl text-center text-slate-700 flex items-center justify-center gap-2">
-              <MapPin className="w-6 h-6" />
+        {/* Location Input */}
+        <Card className="mb-6 border-amber-200 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Wifi className="w-5 h-5" />
               Where did it happen?
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {useDropdown ? (
+            <div className="flex gap-2">
+              <Button
+                variant={!useCustomLocation ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUseCustomLocation(false)}
+                className="flex-1"
+              >
+                Choose Room
+              </Button>
+              <Button
+                variant={useCustomLocation ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUseCustomLocation(true)}
+                className="flex-1"
+              >
+                Type Location
+              </Button>
+            </div>
+
+            {!useCustomLocation ? (
               <div className="space-y-3">
-                <Select value={location} onValueChange={handleLocationSelect}>
-                  <SelectTrigger className="h-12 text-lg border-2 border-slate-300 rounded-lg">
-                    <SelectValue placeholder="Select a room or location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {recentLocations.length > 0 && (
-                      <>
-                        <SelectItem value="header-recent" disabled className="font-semibold text-blue-600">
-                          Recent Locations
-                        </SelectItem>
-                        {recentLocations.map((loc) => (
-                          <SelectItem key={`recent-${loc}`} value={loc} className="pl-4">
-                            📍 {loc}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="header-common" disabled className="font-semibold text-slate-600">
-                          Common Locations
-                        </SelectItem>
-                      </>
-                    )}
-                    {COMMON_LOCATIONS.map((loc) => (
-                      <SelectItem key={loc} value={loc}>
-                        {loc}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {location && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-blue-800 font-medium">Selected: {location}</p>
+                {recentLocations.length > 0 && (
+                  <div>
+                    <Label className="text-sm text-gray-600 mb-2 block">Recent locations:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {recentLocations.map((loc) => (
+                        <Button
+                          key={loc}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLocation(loc)}
+                          className={`text-xs ${location === loc ? "bg-amber-100 border-amber-400" : ""}`}
+                        >
+                          {loc}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 )}
+
+                <div>
+                  <Label htmlFor="location-select" className="text-sm text-gray-600 mb-2 block">
+                    Common rooms:
+                  </Label>
+                  <Select value={location} onValueChange={setLocation}>
+                    <SelectTrigger id="location-select" className="text-lg h-12">
+                      <SelectValue placeholder="Select a room..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {commonLocations.map((loc) => (
+                        <SelectItem key={loc} value={loc} className="text-lg py-3">
+                          {loc}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div>
+                <Label htmlFor="location-input" className="text-sm text-gray-600 mb-2 block">
+                  Enter location:
+                </Label>
                 <Input
+                  id="location-input"
+                  type="text"
+                  placeholder="e.g., Kitchen, Porch, Stairs..."
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Type your location (e.g., Kitchen, Porch)"
-                  className="h-12 text-lg border-2 border-slate-300 rounded-lg"
-                  disabled={isSubmitting}
+                  className="text-lg h-12"
                 />
-                <Button
-                  onClick={switchToDropdown}
-                  variant="outline"
-                  className="w-full h-10 text-sm border-2 border-slate-300 rounded-lg bg-transparent"
-                  disabled={isSubmitting}
-                >
-                  Or choose from common locations
-                </Button>
               </div>
             )}
-            <p className="text-sm text-slate-500 text-center">
-              {location ? "Ready to log your issue!" : "This helps identify problem areas in your home"}
-            </p>
           </CardContent>
         </Card>
 
-        {/* Main Action Buttons */}
-        <Card className="border-2 border-slate-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl text-center text-slate-700">What happened?</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {actionButtons.map(({ type, label, icon: Icon, className, disabled }) => (
-              <Button
-                key={type}
-                onClick={() => handleAddLogEntry(type)}
-                className={`w-full h-16 text-xl text-white font-semibold rounded-xl shadow-md ${className}`}
-                disabled={disabled}
-              >
-                <Icon className="w-8 h-8 mr-3" />
-                {label}
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
+        {/* Issue Buttons */}
+        <div className="space-y-4 mb-8">
+          <Button
+            onClick={() => logIssue("no_signal")}
+            className="w-full h-16 text-xl bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-lg"
+          >
+            <SignalZero className="w-8 h-8 mr-3" />
+            No Signal
+          </Button>
 
-        {/* Navigation Buttons */}
-        <div className="grid grid-cols-3 gap-3">
-          <Link href="/history">
-            <Button className="w-full h-14 text-base bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-xl shadow-md">
-              <History className="w-5 h-5 mr-1" />
-              History
-            </Button>
-          </Link>
+          <Button
+            onClick={() => logIssue("call_failed")}
+            className="w-full h-16 text-xl bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg"
+          >
+            <PhoneOff className="w-8 h-8 mr-3" />
+            Call Failed
+          </Button>
 
-          <Link href="/patterns">
-            <Button className="w-full h-14 text-base bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl shadow-md">
-              📊 Patterns
-            </Button>
-          </Link>
-
-          <Link href="/export">
-            <Button className="w-full h-14 text-base bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md">
-              <Download className="w-5 h-5 mr-1" />
-              Export
-            </Button>
-          </Link>
+          <Button
+            onClick={() => logIssue("message_failed")}
+            className="w-full h-16 text-xl bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-lg"
+          >
+            <MessageSquareX className="w-8 h-8 mr-3" />
+            Message Didn't Send
+          </Button>
         </div>
 
-        <Link href="/settings">
-          <Button className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-md">
-            <User className="w-5 h-5 mr-2" />
+        {/* Auto-save Notice */}
+        <div className="text-center mb-8">
+          <p className="text-sm text-slate-600 bg-white/60 rounded-lg px-4 py-2 border border-amber-200">
+            ✓ Your log is saved automatically
+          </p>
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <Button
+            onClick={() => router.push("/app/history")}
+            variant="outline"
+            className="h-14 text-lg bg-white/80 border-amber-300 hover:bg-amber-50"
+          >
+            <History className="w-6 h-6 mr-2" />
+            History
+          </Button>
+
+          <Button
+            onClick={() => router.push("/app/patterns")}
+            variant="outline"
+            className="h-14 text-lg bg-white/80 border-amber-300 hover:bg-amber-50"
+          >
+            <BarChart3 className="w-6 h-6 mr-2" />
+            Patterns
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Button
+            onClick={() => router.push("/app/export")}
+            variant="outline"
+            className="h-14 text-lg bg-white/80 border-amber-300 hover:bg-amber-50"
+          >
+            <History className="w-6 h-6 mr-2" />
+            Export
+          </Button>
+
+          <Button
+            onClick={() => router.push("/app/settings")}
+            variant="outline"
+            className="h-14 text-lg bg-white/80 border-amber-300 hover:bg-amber-50"
+          >
+            <Settings className="w-6 h-6 mr-2" />
             Settings
           </Button>
-        </Link>
-
-        {/* PWA Components */}
-        <PWAInstallPrompt />
-        <OfflineIndicator />
+        </div>
       </div>
     </div>
   )

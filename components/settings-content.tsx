@@ -2,316 +2,304 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, User, MapPin, Save, Trash2, Phone, Wifi } from "lucide-react"
-import Link from "next/link"
+import { ArrowLeft, User, MapPin, Phone, Trash2, Save } from "lucide-react"
+import { useRouter } from "next/navigation"
+import SponsorButtons from "@/components/sponsor-buttons"
 
-interface UserProfile {
+interface UserSettings {
   name: string
   address: string
+  phone: string
   networkProvider: string
-  customProvider: string
-  phoneNumber: string
 }
 
-const NETWORK_PROVIDERS = [
-  { value: "verizon", label: "Verizon" },
-  { value: "att", label: "AT&T" },
-  { value: "tmobile", label: "T-Mobile" },
-  { value: "sprint", label: "Sprint" },
-  { value: "uscellular", label: "U.S. Cellular" },
-  { value: "cricket", label: "Cricket Wireless" },
-  { value: "boost", label: "Boost Mobile" },
-  { value: "metro", label: "Metro by T-Mobile" },
-  { value: "straight-talk", label: "Straight Talk" },
-  { value: "tracfone", label: "TracFone" },
-  { value: "consumer-cellular", label: "Consumer Cellular" },
-  { value: "xfinity", label: "Xfinity Mobile" },
-  { value: "visible", label: "Visible" },
-  { value: "mint", label: "Mint Mobile" },
-  { value: "other", label: "Other" },
+const networkProviders = [
+  "Verizon",
+  "AT&T",
+  "T-Mobile",
+  "Sprint",
+  "Cricket Wireless",
+  "Boost Mobile",
+  "Metro by T-Mobile",
+  "Straight Talk",
+  "TracFone",
+  "Consumer Cellular",
+  "Xfinity Mobile",
+  "Visible",
+  "Mint Mobile",
+  "Other",
 ]
 
 export default function SettingsContent() {
-  const [profile, setProfile] = useState<UserProfile>({
+  const [mounted, setMounted] = useState(false)
+  const [settings, setSettings] = useState<UserSettings>({
     name: "",
     address: "",
+    phone: "",
     networkProvider: "",
-    customProvider: "",
-    phoneNumber: "",
   })
-  const [isSaved, setIsSaved] = useState(false)
+  const [customProvider, setCustomProvider] = useState("")
+  const [showCustomProvider, setShowCustomProvider] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
-    // Load saved profile
-    const savedProfile = localStorage.getItem("signal-diary-profile")
-    if (savedProfile) {
-      const parsed = JSON.parse(savedProfile)
-      // Handle legacy profiles that might not have new fields
-      setProfile({
-        name: parsed.name || "",
-        address: parsed.address || "",
-        networkProvider: parsed.networkProvider || "",
-        customProvider: parsed.customProvider || "",
-        phoneNumber: parsed.phoneNumber || "",
-      })
+    setMounted(true)
+
+    // Load existing settings
+    const savedSettings = localStorage.getItem("userSettings")
+    if (savedSettings) {
+      const parsed = JSON.parse(savedSettings)
+      setSettings(parsed)
+
+      // Check if provider is custom (not in the list)
+      if (parsed.networkProvider && !networkProviders.includes(parsed.networkProvider)) {
+        setCustomProvider(parsed.networkProvider)
+        setShowCustomProvider(true)
+      }
     }
   }, [])
 
-  const handleSave = () => {
-    localStorage.setItem("signal-diary-profile", JSON.stringify(profile))
-    setIsSaved(true)
-    setTimeout(() => setIsSaved(false), 3000)
-  }
+  const saveSettings = () => {
+    if (!mounted) return
 
-  const handleClear = () => {
-    if (confirm("Are you sure you want to clear your information?")) {
-      setProfile({
-        name: "",
-        address: "",
-        networkProvider: "",
-        customProvider: "",
-        phoneNumber: "",
-      })
-      localStorage.removeItem("signal-diary-profile")
+    const finalProvider = showCustomProvider ? customProvider : settings.networkProvider
+    const finalSettings = {
+      ...settings,
+      networkProvider: finalProvider,
     }
+
+    localStorage.setItem("userSettings", JSON.stringify(finalSettings))
+    alert("Settings saved successfully!")
   }
 
   const clearAllData = () => {
-    if (
-      confirm(
-        "Are you sure you want to delete ALL your data? This will remove your profile and all logged signal issues. This cannot be undone.",
-      )
-    ) {
-      localStorage.removeItem("signal-diary-profile")
-      localStorage.removeItem("signal-diary-logs")
-      localStorage.removeItem("pwa-install-dismissed")
-      setProfile({
+    if (!mounted) return
+
+    const confirmed = confirm(
+      "Are you sure you want to clear all data? This will delete:\n\n" +
+        "• All signal logs\n" +
+        "• Your personal information\n" +
+        "• All settings\n\n" +
+        "This cannot be undone.",
+    )
+
+    if (confirmed) {
+      localStorage.removeItem("signalLogs")
+      localStorage.removeItem("userSettings")
+      setSettings({
         name: "",
         address: "",
+        phone: "",
         networkProvider: "",
-        customProvider: "",
-        phoneNumber: "",
       })
+      setCustomProvider("")
+      setShowCustomProvider(false)
       alert("All data has been cleared.")
     }
   }
 
-  const getProviderDisplayName = () => {
-    if (profile.networkProvider === "other" && profile.customProvider) {
-      return profile.customProvider
-    }
-    const provider = NETWORK_PROVIDERS.find((p) => p.value === profile.networkProvider)
-    return provider?.label || ""
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-amber-50 to-amber-100 p-4">
+        <div className="max-w-md mx-auto">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-10 h-10 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 bg-gray-200 rounded w-32 animate-pulse"></div>
+          </div>
+          <div className="space-y-4">
+            <div className="h-32 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="h-32 bg-gray-200 rounded-lg animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-amber-50 p-4">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-amber-100 p-4">
+      <div className="max-w-md mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 py-4">
-          <Link href="/">
-            <Button variant="outline" size="lg" className="h-12 w-12 rounded-xl border-2 bg-transparent">
-              <ArrowLeft className="w-6 h-6" />
-            </Button>
-          </Link>
+        <div className="flex items-center gap-4 mb-6">
+          <Button onClick={() => router.back()} variant="outline" size="sm" className="bg-white/80 border-amber-300">
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
           <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
         </div>
 
-        {/* Profile Information */}
-        <Card className="border-2 border-slate-200 shadow-lg">
+        {/* Personal Information */}
+        <Card className="mb-6 border-amber-200 bg-white/80 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-xl text-slate-700 flex items-center gap-2">
-              <User className="w-6 h-6" />
-              Your Information
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Personal Information
             </CardTitle>
-            <p className="text-sm text-slate-600">
-              This information is optional and stored only on your device. It will be included in exported reports to
-              help caregivers and network providers.
+            <p className="text-sm text-gray-600">
+              Optional - helps create complete reports for caregivers and providers
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-lg font-medium text-slate-700 mb-2">
-                Your Name
-              </label>
+              <Label htmlFor="name" className="text-sm font-medium">
+                Full Name
+              </Label>
               <Input
                 id="name"
-                value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                type="text"
                 placeholder="Enter your full name"
-                className="h-12 text-lg border-2 border-slate-300 rounded-lg"
+                value={settings.name}
+                onChange={(e) => setSettings({ ...settings, name: e.target.value })}
+                className="mt-1 text-lg h-12"
               />
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-lg font-medium text-slate-700 mb-2">
-                <Phone className="w-5 h-5 inline mr-1" />
+              <Label htmlFor="phone" className="text-sm font-medium">
                 Phone Number
-              </label>
+              </Label>
               <Input
                 id="phone"
                 type="tel"
-                value={profile.phoneNumber}
-                onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
                 placeholder="Enter your phone number"
-                className="h-12 text-lg border-2 border-slate-300 rounded-lg"
+                value={settings.phone}
+                onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                className="mt-1 text-lg h-12"
               />
             </div>
 
             <div>
-              <label htmlFor="address" className="block text-lg font-medium text-slate-700 mb-2">
-                <MapPin className="w-5 h-5 inline mr-1" />
-                Your Address
-              </label>
+              <Label htmlFor="address" className="text-sm font-medium">
+                Address
+              </Label>
               <Textarea
                 id="address"
-                value={profile.address}
-                onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                placeholder="Enter your home address&#10;(Street, City, State, ZIP)"
-                className="min-h-[100px] text-lg border-2 border-slate-300 rounded-lg resize-none"
-                rows={4}
+                placeholder="Enter your address"
+                value={settings.address}
+                onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                className="mt-1 text-lg min-h-[80px]"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Network Provider */}
-        <Card className="border-2 border-slate-200 shadow-lg">
+        <Card className="mb-6 border-amber-200 bg-white/80 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-xl text-slate-700 flex items-center gap-2">
-              <Wifi className="w-6 h-6" />
+            <CardTitle className="flex items-center gap-2">
+              <Phone className="w-5 h-5" />
               Network Provider
             </CardTitle>
-            <p className="text-sm text-slate-600">
-              Select your phone service provider. This helps route your reports to the right support team.
-            </p>
+            <p className="text-sm text-gray-600">Helps route reports to the right support team</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label htmlFor="provider" className="block text-lg font-medium text-slate-700 mb-2">
-                Your Phone Service Provider
-              </label>
+              <Label htmlFor="provider" className="text-sm font-medium">
+                Select Your Provider
+              </Label>
               <Select
-                value={profile.networkProvider}
-                onValueChange={(value) => setProfile({ ...profile, networkProvider: value })}
+                value={showCustomProvider ? "Other" : settings.networkProvider}
+                onValueChange={(value) => {
+                  if (value === "Other") {
+                    setShowCustomProvider(true)
+                    setSettings({ ...settings, networkProvider: "" })
+                  } else {
+                    setShowCustomProvider(false)
+                    setSettings({ ...settings, networkProvider: value })
+                  }
+                }}
               >
-                <SelectTrigger className="h-12 text-lg border-2 border-slate-300 rounded-lg">
-                  <SelectValue placeholder="Select your provider" />
+                <SelectTrigger id="provider" className="text-lg h-12">
+                  <SelectValue placeholder="Choose your network provider..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {NETWORK_PROVIDERS.map((provider) => (
-                    <SelectItem key={provider.value} value={provider.value}>
-                      {provider.label}
+                  {networkProviders.map((provider) => (
+                    <SelectItem key={provider} value={provider} className="text-lg py-3">
+                      {provider}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {profile.networkProvider === "other" && (
+            {showCustomProvider && (
               <div>
-                <label htmlFor="custom-provider" className="block text-lg font-medium text-slate-700 mb-2">
-                  Provider Name
-                </label>
+                <Label htmlFor="custom-provider" className="text-sm font-medium">
+                  Enter Provider Name
+                </Label>
                 <Input
                   id="custom-provider"
-                  value={profile.customProvider}
-                  onChange={(e) => setProfile({ ...profile, customProvider: e.target.value })}
+                  type="text"
                   placeholder="Enter your provider name"
-                  className="h-12 text-lg border-2 border-slate-300 rounded-lg"
+                  value={customProvider}
+                  onChange={(e) => setCustomProvider(e.target.value)}
+                  className="mt-1 text-lg h-12"
                 />
               </div>
             )}
 
-            {getProviderDisplayName() && (
+            {(settings.networkProvider || customProvider) && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-blue-800 font-medium">
-                  Selected Provider: <span className="font-bold">{getProviderDisplayName()}</span>
+                <p className="text-sm text-blue-800">
+                  <strong>Selected:</strong> {showCustomProvider ? customProvider : settings.networkProvider}
                 </p>
-                <p className="text-sm text-blue-700 mt-1">
-                  Your reports will include this provider information to help with faster support routing.
+                <p className="text-xs text-blue-600 mt-1">
+                  This will be included in your exported reports for easier routing to support.
                 </p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Save/Clear Actions */}
-        <Card className="border-2 border-slate-200 shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex gap-3">
-              <Button
-                onClick={handleSave}
-                className="flex-1 h-12 text-lg bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md"
-              >
-                <Save className="w-5 h-5 mr-2" />
-                {isSaved ? "Saved!" : "Save"}
-              </Button>
-
-              <Button
-                onClick={handleClear}
-                variant="outline"
-                className="h-12 px-4 text-lg border-2 border-slate-300 rounded-xl bg-transparent"
-                disabled={!profile.name && !profile.address && !profile.networkProvider && !profile.phoneNumber}
-              >
-                <Trash2 className="w-5 h-5" />
-              </Button>
-            </div>
-
-            {isSaved && (
-              <div className="text-center text-green-700 font-medium mt-3">✓ Your information has been saved</div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Privacy Information */}
-        <Card className="border-2 border-blue-200 bg-blue-50 shadow-lg">
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">Privacy & Data</h3>
-            <div className="space-y-2 text-blue-800">
-              <p className="text-sm">• Your information is stored only on this device</p>
-              <p className="text-sm">• Nothing is sent to the internet or shared automatically</p>
-              <p className="text-sm">• You control when and how to share your data</p>
-              <p className="text-sm">• Provider info helps route reports to the right support team</p>
-              <p className="text-sm">• You can clear all data at any time</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Data Management */}
-        <Card className="border-2 border-red-200 bg-red-50 shadow-lg">
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold text-red-900 mb-2">Data Management</h3>
-            <p className="text-sm text-red-800 mb-4">
-              This will permanently delete all your information and signal logs. This cannot be undone.
+        {/* Privacy Notice */}
+        <Card className="mb-6 border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-800">
+              <MapPin className="w-5 h-5" />
+              Privacy Notice
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-green-700">
+            <p className="text-sm">
+              All information is stored locally on your device only. Nothing is sent to servers or shared unless you
+              choose to export your data.
             </p>
-            <Button
-              onClick={clearAllData}
-              className="w-full h-12 text-lg bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl shadow-md"
-            >
-              <Trash2 className="w-5 h-5 mr-2" />
-              Clear All Data
-            </Button>
           </CardContent>
         </Card>
 
-        {/* Navigation */}
-        <div className="grid grid-cols-2 gap-4">
-          <Link href="/history">
-            <Button className="w-full h-12 text-lg bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-xl shadow-md">
-              View History
-            </Button>
-          </Link>
-          <Link href="/export">
-            <Button className="w-full h-12 text-lg bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md">
-              Export Log
-            </Button>
-          </Link>
+        {/* Support Section */}
+        <div className="mb-6">
+          <SponsorButtons />
         </div>
+
+        {/* Action Buttons */}
+        <div className="space-y-4">
+          <Button
+            onClick={saveSettings}
+            className="w-full h-14 text-lg bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg"
+          >
+            <Save className="w-6 h-6 mr-2" />
+            Save Settings
+          </Button>
+
+          <Button onClick={clearAllData} variant="destructive" className="w-full h-14 text-lg rounded-xl shadow-lg">
+            <Trash2 className="w-6 h-6 mr-2" />
+            Clear All Data
+          </Button>
+        </div>
+
+        {/* Data Summary */}
+        <Card className="mt-6 border-amber-200 bg-white/60">
+          <CardContent className="pt-6">
+            <p className="text-sm text-gray-600 text-center">
+              Your data is stored locally and never shared automatically. Use the Export feature to share reports when
+              needed.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
