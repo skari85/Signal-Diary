@@ -4,10 +4,12 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import PerformanceMonitor from "@/components/performance-monitor"
 import { Toaster } from "@/components/ui/toaster"
+import { Analytics } from "@vercel/analytics/react"
+import { Suspense } from "react"
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
   preload: true,
 })
 
@@ -28,12 +30,13 @@ export const metadata: Metadata = {
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
     ],
   },
-  generator: 'v0.dev',
+  generator: "v0.dev",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Signal Diary",
   },
+  metadataBase: new URL("https://signaldiary.vercel.app"),
 }
 
 export const viewport: Viewport = {
@@ -98,9 +101,12 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        {children}
-        <PerformanceMonitor />
-        <Toaster />
+        <Suspense fallback={null}>
+          {children}
+          <PerformanceMonitor />
+          <Toaster />
+          <Analytics />
+        </Suspense>
       </body>
     </html>
   )

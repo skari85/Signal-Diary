@@ -1,402 +1,323 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Phone,
-  PhoneOff,
-  MessageSquareX,
-  MapPin,
-  BarChart3,
-  Download,
-  Settings,
-  History,
-  TrendingUp,
-  Clock,
-  Home,
-  Building,
-  Car,
-  Store,
-  Plus,
-} from "lucide-react"
-import { useSignalDiary } from "@/hooks/use-signal-diary"
-import { format } from "date-fns"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SignalZero, PhoneOff, MessageSquareX, History, Download, User, MapPin, Clock, TrendingUp } from "lucide-react"
 import Link from "next/link"
+import OptimizedImage from "./optimized-image"
+import PWAInstallPrompt from "./pwa-install-prompt"
+import OfflineIndicator from "./offline-indicator"
+import { useSignalDiary } from "@/hooks/use-signal-diary"
+import { toast } from "@/hooks/use-toast"
+
+const COMMON_LOCATIONS = [
+  "Kitchen",
+  "Living Room",
+  "Bedroom",
+  "Bathroom",
+  "Porch",
+  "Stairs",
+  "Basement",
+  "Attic",
+  "Garage",
+  "Backyard",
+  "Front Yard",
+  "Dining Room",
+  "Office",
+  "Hallway",
+  "Balcony",
+  "Other",
+] as const
+
+const ISSUE_TYPES = [
+  {
+    type: "no-signal" as const,
+    label: "No Signal",
+    icon: SignalZero,
+    className: "bg-red-500 hover:bg-red-600",
+    description: "Phone shows no signal bars",
+  },
+  {
+    type: "call-failed" as const,
+    label: "Call Failed",
+    icon: PhoneOff,
+    className: "bg-orange-500 hover:bg-orange-600",
+    description: "Call couldn't connect or dropped",
+  },
+  {
+    type: "message-failed" as const,
+    label: "Message Didn't Send",
+    icon: MessageSquareX,
+    className: "bg-blue-500 hover:bg-blue-600",
+    description: "Text message failed to send",
+  },
+]
 
 export default function HomeContent() {
-  const { logs, addLog, getWeeklyStats, getRecentLocations } = useSignalDiary()
-  const [customLocation, setCustomLocation] = useState("")
-  const [showCustomLocation, setShowCustomLocation] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const [location, setLocation] = useState("")
+  const [useDropdown, setUseDropdown] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
+  const { addLogEntry, recentLocations, logs, getWeeklyStats } = useSignalDiary()
+
+  // Handle adding log entry
+  const handleAddLogEntry = useCallback(
+    async (type: "no-signal" | "call-failed" | "message-failed") => {
+      if (isSubmitting) return
+
+      setIsSubmitting(true)
+
+      try {
+        await addLogEntry(type, location)
+        setLocation("")
+        toast({
+          title: "Issue logged successfully!",
+          description: `${ISSUE_TYPES.find((t) => t.type === type)?.label} logged in ${location || "Not specified"}.`,
+        })
+      } catch (error) {
+        console.error("Error logging entry:", error)
+        toast({
+          title: "Failed to log issue",
+          description: "Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [addLogEntry, location, isSubmitting],
+  )
+
+  // Handle location selection
+  const handleLocationSelect = useCallback((value: string) => {
+    if (value === "Other") {
+      setUseDropdown(false)
+      setLocation("")
+    } else {
+      setLocation(value)
+    }
   }, [])
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded mb-4"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-              <div className="h-32 bg-gray-200 rounded"></div>
-              <div className="h-32 bg-gray-200 rounded"></div>
-              <div className="h-32 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Switch to dropdown
+  const switchToDropdown = useCallback(() => {
+    setUseDropdown(true)
+    setLocation("")
+  }, [])
 
-  const handleLogIssue = (type: "no_signal" | "call_failed" | "message_failed", location: string) => {
-    addLog({
-      type,
-      location: location || "Unknown",
-      timestamp: new Date().toISOString(),
-      id: Date.now().toString(),
-    })
-    setCustomLocation("")
-    setShowCustomLocation(false)
-  }
+  // Get recent activity
+  const recentActivity = useMemo(() => {
+    return logs.slice(0, 3).map((log) => ({
+      ...log,
+      issueType: ISSUE_TYPES.find((t) => t.type === log.type),
+      timestamp: new Date(log.timestamp),
+    }))
+  }, [logs])
 
-  const weeklyStats = getWeeklyStats()
-  const recentLocations = getRecentLocations()
-  const recentLogs = logs.slice(-5).reverse()
-
-  const issueTypeLabels = {
-    no_signal: "No Signal",
-    call_failed: "Call Failed",
-    message_failed: "Message Failed",
-  }
-
-  const issueTypeColors = {
-    no_signal: "bg-red-100 text-red-800 border-red-200",
-    call_failed: "bg-orange-100 text-orange-800 border-orange-200",
-    message_failed: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  }
-
-  const commonLocations = [
-    { name: "Home", icon: Home },
-    { name: "Kitchen", icon: Home },
-    { name: "Bedroom", icon: Home },
-    { name: "Living Room", icon: Home },
-    { name: "Office", icon: Building },
-    { name: "Car", icon: Car },
-    { name: "Store", icon: Store },
-  ]
+  // Get weekly stats
+  const weeklyStats = useMemo(() => getWeeklyStats(), [getWeeklyStats])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-amber-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
-                <Phone className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Signal Diary</h1>
-                <p className="text-gray-600">Track your phone signal issues</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Link href="/history">
-                <Button variant="outline" size="sm" className="bg-transparent">
-                  <History className="w-4 h-4 mr-2" />
-                  History
-                </Button>
-              </Link>
-              <Link href="/settings">
-                <Button variant="outline" size="sm" className="bg-transparent">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
-              </Link>
-            </div>
+    <div className="min-h-screen bg-amber-50 p-4">
+      <div className="max-w-md mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center py-4">
+          <div className="flex justify-center mb-4">
+            <OptimizedImage
+              src="/signal-diary-logo.png"
+              alt="Signal Diary Logo"
+              width={80}
+              height={80}
+              className="rounded-2xl"
+              priority
+            />
           </div>
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Signal Diary</h1>
+          <p className="text-lg text-slate-600">Track your phone signal issues</p>
         </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto p-4">
-        <Tabs defaultValue="log" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="log">Log Issue</TabsTrigger>
-            <TabsTrigger value="patterns">Patterns</TabsTrigger>
-            <TabsTrigger value="recent">Recent</TabsTrigger>
-          </TabsList>
+        {/* Quick Stats */}
+        {weeklyStats.total > 0 && (
+          <Card className="border-2 border-purple-200 bg-purple-50 shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 mb-3">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+                <h2 className="text-lg font-semibold text-purple-900">This Week</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-900">{weeklyStats.total}</div>
+                  <div className="text-sm text-purple-700">Total Issues</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-900">{weeklyStats.noSignal}</div>
+                  <div className="text-sm text-purple-700">No Signal</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          <TabsContent value="log" className="space-y-6">
-            {/* Issue Type Buttons */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="border-2 border-red-200 hover:border-red-300 transition-colors cursor-pointer group">
-                <CardContent className="p-6 text-center">
-                  <PhoneOff className="w-12 h-12 text-red-600 mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                  <h3 className="text-xl font-semibold text-red-800 mb-2">No Signal</h3>
-                  <p className="text-gray-600 text-sm mb-4">Can't make calls or use data</p>
-                  <Button
-                    className="w-full h-12 bg-red-600 hover:bg-red-700 text-white text-lg"
-                    onClick={() => {
-                      if (recentLocations.length > 0) {
-                        handleLogIssue("no_signal", recentLocations[0])
-                      } else {
-                        setShowCustomLocation(true)
-                      }
-                    }}
-                  >
-                    Log No Signal
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border-2 border-orange-200 hover:border-orange-300 transition-colors cursor-pointer group">
-                <CardContent className="p-6 text-center">
-                  <Phone className="w-12 h-12 text-orange-600 mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                  <h3 className="text-xl font-semibold text-orange-800 mb-2">Call Failed</h3>
-                  <p className="text-gray-600 text-sm mb-4">Call dropped or wouldn't connect</p>
-                  <Button
-                    className="w-full h-12 bg-orange-600 hover:bg-orange-700 text-white text-lg"
-                    onClick={() => {
-                      if (recentLocations.length > 0) {
-                        handleLogIssue("call_failed", recentLocations[0])
-                      } else {
-                        setShowCustomLocation(true)
-                      }
-                    }}
-                  >
-                    Log Call Failed
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border-2 border-yellow-200 hover:border-yellow-300 transition-colors cursor-pointer group">
-                <CardContent className="p-6 text-center">
-                  <MessageSquareX className="w-12 h-12 text-yellow-600 mx-auto mb-4 group-hover:scale-110 transition-transform" />
-                  <h3 className="text-xl font-semibold text-yellow-800 mb-2">Message Failed</h3>
-                  <p className="text-gray-600 text-sm mb-4">Text message didn't send</p>
-                  <Button
-                    className="w-full h-12 bg-yellow-600 hover:bg-yellow-700 text-white text-lg"
-                    onClick={() => {
-                      if (recentLocations.length > 0) {
-                        handleLogIssue("message_failed", recentLocations[0])
-                      } else {
-                        setShowCustomLocation(true)
-                      }
-                    }}
-                  >
-                    Log Message Failed
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Location Selection */}
-            <Card className="border-amber-200">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Where did this happen?
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Recent Locations */}
-                {recentLocations.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Recent locations:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {recentLocations.slice(0, 5).map((location, index) => (
-                        <Button
-                          key={index}
-                          variant="outline"
-                          size="sm"
-                          className="bg-transparent"
-                          onClick={() => handleLogIssue("no_signal", location)}
-                        >
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {location}
-                        </Button>
-                      ))}
-                    </div>
+        {/* Location Selection */}
+        <Card className="border-2 border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl text-center text-slate-700 flex items-center justify-center gap-2">
+              <MapPin className="w-6 h-6" />
+              Where did it happen?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {useDropdown ? (
+              <div className="space-y-3">
+                <Select value={location} onValueChange={handleLocationSelect}>
+                  <SelectTrigger className="h-12 text-lg border-2 border-slate-300 rounded-lg">
+                    <SelectValue placeholder="Select a room or location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {recentLocations.length > 0 && (
+                      <>
+                        <SelectItem value="header-recent" disabled className="font-semibold text-blue-600">
+                          Recent Locations
+                        </SelectItem>
+                        {recentLocations.map((loc) => (
+                          <SelectItem key={`recent-${loc}`} value={loc} className="pl-4">
+                            📍 {loc}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="header-common" disabled className="font-semibold text-slate-600">
+                          Common Locations
+                        </SelectItem>
+                      </>
+                    )}
+                    {COMMON_LOCATIONS.map((loc) => (
+                      <SelectItem key={loc} value={loc}>
+                        {loc}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {location && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-blue-800 font-medium">Selected: {location}</p>
                   </div>
                 )}
-
-                {/* Common Locations */}
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Common locations:</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {commonLocations.map((loc) => (
-                      <Button
-                        key={loc.name}
-                        variant="outline"
-                        size="sm"
-                        className="bg-transparent justify-start"
-                        onClick={() => handleLogIssue("no_signal", loc.name)}
-                      >
-                        <loc.icon className="w-3 h-3 mr-2" />
-                        {loc.name}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Custom Location */}
-                <div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-transparent"
-                    onClick={() => setShowCustomLocation(!showCustomLocation)}
-                  >
-                    <Plus className="w-3 h-3 mr-2" />
-                    Add custom location
-                  </Button>
-
-                  {showCustomLocation && (
-                    <div className="mt-2 flex gap-2">
-                      <Input
-                        placeholder="Enter location (e.g., Porch, Basement)"
-                        value={customLocation}
-                        onChange={(e) => setCustomLocation(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button
-                        onClick={() => {
-                          if (customLocation.trim()) {
-                            handleLogIssue("no_signal", customLocation.trim())
-                          }
-                        }}
-                        disabled={!customLocation.trim()}
-                      >
-                        Use
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="patterns" className="space-y-6">
-            {/* Weekly Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="border-amber-200">
-                <CardContent className="p-4 text-center">
-                  <TrendingUp className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900">{weeklyStats.total}</p>
-                  <p className="text-sm text-gray-600">Total Issues</p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-red-200">
-                <CardContent className="p-4 text-center">
-                  <PhoneOff className="w-8 h-8 text-red-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900">{weeklyStats.no_signal}</p>
-                  <p className="text-sm text-gray-600">No Signal</p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-orange-200">
-                <CardContent className="p-4 text-center">
-                  <Phone className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900">{weeklyStats.call_failed}</p>
-                  <p className="text-sm text-gray-600">Call Failed</p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-yellow-200">
-                <CardContent className="p-4 text-center">
-                  <MessageSquareX className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900">{weeklyStats.message_failed}</p>
-                  <p className="text-sm text-gray-600">Message Failed</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Most Common Locations */}
-            {recentLocations.length > 0 && (
-              <Card className="border-amber-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    Most Common Problem Locations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {recentLocations.slice(0, 5).map((location, index) => {
-                      const locationCount = logs.filter((log) => log.location === location).length
-                      return (
-                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <span className="font-medium">{location}</span>
-                          <Badge variant="secondary">{locationCount} issues</Badge>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Type your location (e.g., Kitchen, Porch)"
+                  className="h-12 text-lg border-2 border-slate-300 rounded-lg"
+                  disabled={isSubmitting}
+                />
+                <Button
+                  onClick={switchToDropdown}
+                  variant="outline"
+                  className="w-full h-10 text-sm border-2 border-slate-300 rounded-lg bg-transparent"
+                  disabled={isSubmitting}
+                >
+                  Or choose from common locations
+                </Button>
+              </div>
             )}
-          </TabsContent>
+            <p className="text-sm text-slate-500 text-center">
+              {location ? "Ready to log your issue!" : "This helps identify problem areas in your home"}
+            </p>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="recent" className="space-y-6">
-            {recentLogs.length > 0 ? (
-              <Card className="border-amber-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {recentLogs.map((log) => (
-                      <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Badge className={issueTypeColors[log.type]}>{issueTypeLabels[log.type]}</Badge>
-                          <div>
-                            <p className="font-medium">{log.location}</p>
-                            <p className="text-sm text-gray-600">{format(new Date(log.timestamp), "MMM d, h:mm a")}</p>
-                          </div>
+        {/* Main Action Buttons */}
+        <Card className="border-2 border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl text-center text-slate-700">What happened?</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {ISSUE_TYPES.map((issue) => {
+              const Icon = issue.icon
+              return (
+                <Button
+                  key={issue.type}
+                  onClick={() => handleAddLogEntry(issue.type)}
+                  className={`w-full h-16 text-xl text-white font-semibold rounded-xl shadow-md ${issue.className}`}
+                  disabled={isSubmitting}
+                >
+                  <Icon className="w-8 h-8 mr-3" />
+                  <div className="text-left">
+                    <div className="font-bold">{issue.label}</div>
+                    <div className="text-sm opacity-90">{issue.description}</div>
+                  </div>
+                </Button>
+              )
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        {recentActivity.length > 0 && (
+          <Card className="border-2 border-slate-200 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Clock className="w-5 h-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentActivity.map((log) => (
+                  <div key={log.id} className="p-3 rounded-lg border bg-gray-50">
+                    <div className="flex items-start gap-3">
+                      {log.issueType?.icon && <log.issueType.icon className="w-5 h-5 mt-0.5 text-slate-600" />}
+                      <div className="flex-1">
+                        <div className="font-medium text-slate-800">{log.issueType?.label}</div>
+                        <div className="text-sm text-slate-600">
+                          {log.location} • {log.timestamp.toLocaleDateString()} at{" "}
+                          {log.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </div>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-amber-200">
-                <CardContent className="p-8 text-center">
-                  <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No issues logged yet</h3>
-                  <p className="text-gray-600 mb-4">Start logging signal problems to see your activity here.</p>
-                  <Button onClick={() => document.querySelector('[value="log"]')?.click()}>Log Your First Issue</Button>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Quick Actions */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href="/export">
-            <Button variant="outline" className="bg-transparent">
-              <Download className="w-4 h-4 mr-2" />
-              Export Data
+        {/* Navigation Buttons */}
+        <div className="grid grid-cols-3 gap-3">
+          <Link href="/history">
+            <Button className="w-full h-14 text-base bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-xl shadow-md">
+              <History className="w-5 h-5 mr-1" />
+              History
             </Button>
           </Link>
+
           <Link href="/patterns">
-            <Button variant="outline" className="bg-transparent">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              View Patterns
+            <Button className="w-full h-14 text-base bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl shadow-md">
+              📊 Patterns
+            </Button>
+          </Link>
+
+          <Link href="/export">
+            <Button className="w-full h-14 text-base bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md">
+              <Download className="w-5 h-5 mr-1" />
+              Export
             </Button>
           </Link>
         </div>
+
+        <Link href="/settings">
+          <Button className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-md">
+            <User className="w-5 h-5 mr-2" />
+            Settings
+          </Button>
+        </Link>
+
+        {/* PWA Components */}
+        <PWAInstallPrompt />
+        <OfflineIndicator />
       </div>
     </div>
   )
