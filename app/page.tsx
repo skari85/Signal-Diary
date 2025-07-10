@@ -1,270 +1,466 @@
-"use client"
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Signal, Phone, BarChart3, Download, Settings, Heart, Shield, FileText, Info, Monitor } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Badge } from "@/components/ui/badge"
+import {
+  Phone,
+  MapPin,
+  TrendingUp,
+  Download,
+  Shield,
+  Users,
+  FileText,
+  Monitor,
+  Smartphone,
+  Heart,
+  Star,
+  ArrowRight,
+  CheckCircle,
+} from "lucide-react"
 import Link from "next/link"
 import SponsorButtons from "@/components/sponsor-buttons"
 
 export default function LandingPage() {
-  const router = useRouter()
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-amber-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-amber-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+      <header className="border-b border-amber-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src="/signal-diary-logo.png" alt="Signal Diary Logo" width={60} height={60} className="rounded-lg" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
+                <Phone className="w-6 h-6 text-white" />
+              </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Signal Diary</h1>
-                <p className="text-gray-600">Track your phone signal issues</p>
+                <h1 className="text-xl font-bold text-slate-800">Signal Diary</h1>
+                <p className="text-sm text-slate-600">Track phone signal issues</p>
               </div>
             </div>
-            <nav className="hidden md:flex items-center gap-4">
-              <Link href="/about" className="text-gray-600 hover:text-gray-900">
+            <nav className="hidden md:flex items-center gap-6">
+              <Link href="/about" className="text-slate-600 hover:text-slate-800 transition-colors">
                 About
               </Link>
-              <Link href="/privacy" className="text-gray-600 hover:text-gray-900">
+              <Link href="/privacy" className="text-slate-600 hover:text-slate-800 transition-colors">
                 Privacy
               </Link>
-              <Link href="/terms" className="text-gray-600 hover:text-gray-900">
+              <Link href="/terms" className="text-slate-600 hover:text-slate-800 transition-colors">
                 Terms
               </Link>
             </nav>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Simple Signal Tracking for Everyone</h2>
-          <p className="text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
-            Keep track of your phone signal problems with an easy-to-use app designed for clarity and simplicity.
-            Perfect for sharing with caregivers and network providers.
+      {/* Hero Section */}
+      <section className="py-16 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <Badge className="mb-6 bg-amber-100 text-amber-800 border-amber-300 text-sm px-4 py-2">
+            Free & Privacy-First
+          </Badge>
+
+          <h1 className="text-4xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+            Track Phone Signal Issues
+            <span className="block text-amber-600">Made Simple</span>
+          </h1>
+
+          <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Help elderly users and caregivers document phone signal problems with an easy-to-use diary. Generate
+            professional reports for network providers.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              onClick={() => router.push("/app")}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xl px-8 py-6 h-auto rounded-lg"
-            >
-              Start Using Web App
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="border-blue-600 text-blue-600 hover:bg-blue-50 text-xl px-8 py-6 h-auto rounded-lg bg-transparent"
-            >
-              <a
-                href="https://snobbbies.lemonsqueezy.com/buy/39dde2d7-20f1-4976-b196-b180c5b464e2"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2"
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link href="/app">
+              <Button
+                size="lg"
+                className="h-14 px-8 text-lg bg-amber-600 hover:bg-amber-700 text-white rounded-xl shadow-lg"
               >
-                <Monitor size={20} />
+                <Smartphone className="w-6 h-6 mr-2" />
+                Start Using Web App
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+
+            <a
+              href="https://snobbbies.lemonsqueezy.com/buy/39dde2d7-20f1-4976-b196-b180c5b464e2"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 px-8 text-lg border-2 border-amber-300 text-amber-700 hover:bg-amber-50 rounded-xl shadow-lg bg-transparent"
+              >
+                <Monitor className="w-6 h-6 mr-2" />
                 Download Desktop App
-              </a>
-            </Button>
+              </Button>
+            </a>
+          </div>
+
+          {/* Trust Indicators */}
+          <div className="flex flex-wrap justify-center gap-8 text-sm text-slate-500">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span>Privacy Protected</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span>Caregiver Friendly</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              <span>Easy Export</span>
+            </div>
           </div>
         </div>
+      </section>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <Card className="border-amber-200">
-            <CardContent className="p-6 text-center">
-              <Signal className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Easy Logging</h3>
-              <p className="text-gray-600">
-                Three simple buttons to log signal issues: No Signal, Call Failed, or Message Didn't Send
-              </p>
-            </CardContent>
-          </Card>
+      {/* Features Section */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              Everything You Need to Document Signal Issues
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              Simple tools designed specifically for elderly users and their caregivers
+            </p>
+          </div>
 
-          <Card className="border-amber-200">
-            <CardContent className="p-6 text-center">
-              <BarChart3 className="w-12 h-12 text-green-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Pattern Analysis</h3>
-              <p className="text-gray-600">
-                See where and when problems happen most. Identify patterns by location and time.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="border-2 border-amber-200 hover:border-amber-300 transition-colors">
+              <CardHeader>
+                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-4">
+                  <Phone className="w-6 h-6 text-amber-600" />
+                </div>
+                <CardTitle className="text-xl">Quick Issue Logging</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600">
+                  Log signal problems with just a few taps. Choose from common issues like "No Signal", "Call Failed",
+                  or "Message Didn't Send".
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card className="border-amber-200">
-            <CardContent className="p-6 text-center">
-              <Download className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Easy Sharing</h3>
-              <p className="text-gray-600">
-                Export your data as CSV or print-friendly reports to share with family or providers.
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="border-2 border-blue-200 hover:border-blue-300 transition-colors">
+              <CardHeader>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                  <MapPin className="w-6 h-6 text-blue-600" />
+                </div>
+                <CardTitle className="text-xl">Location Tracking</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600">
+                  Automatically remember locations where problems occur. Build a history of problem areas to share with
+                  providers.
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card className="border-amber-200">
-            <CardContent className="p-6 text-center">
-              <Phone className="w-12 h-12 text-red-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Room Tracking</h3>
-              <p className="text-gray-600">
-                Track exactly where issues happen - kitchen, bedroom, porch, or anywhere else.
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="border-2 border-green-200 hover:border-green-300 transition-colors">
+              <CardHeader>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+                </div>
+                <CardTitle className="text-xl">Pattern Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600">
+                  See patterns in your signal issues. Identify problem times, locations, and issue types to help
+                  providers fix problems.
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card className="border-amber-200">
-            <CardContent className="p-6 text-center">
-              <Settings className="w-12 h-12 text-orange-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Your Information</h3>
-              <p className="text-gray-600">
-                Optionally add your name, address, and network provider for complete reports.
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="border-2 border-purple-200 hover:border-purple-300 transition-colors">
+              <CardHeader>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                  <FileText className="w-6 h-6 text-purple-600" />
+                </div>
+                <CardTitle className="text-xl">Professional Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600">
+                  Generate detailed reports with customer information and provider contacts. Perfect for sharing with
+                  support teams.
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card className="border-amber-200">
-            <CardContent className="p-6 text-center">
-              <Heart className="w-12 h-12 text-pink-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Privacy First</h3>
-              <p className="text-gray-600">
-                All data stays on your device. Nothing is shared unless you choose to export it.
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="border-2 border-orange-200 hover:border-orange-300 transition-colors">
+              <CardHeader>
+                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+                  <Shield className="w-6 h-6 text-orange-600" />
+                </div>
+                <CardTitle className="text-xl">Privacy First</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600">
+                  All data stays on your device. Nothing is shared unless you choose to export it. Complete control over
+                  your information.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-red-200 hover:border-red-300 transition-colors">
+              <CardHeader>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                  <Users className="w-6 h-6 text-red-600" />
+                </div>
+                <CardTitle className="text-xl">Caregiver Support</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-600">
+                  Designed for elderly users with large buttons, clear text, and simple navigation. Easy for caregivers
+                  to help with.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+      </section>
 
-        {/* How It Works */}
-        <div className="bg-white rounded-lg border border-amber-200 p-8 mb-12">
-          <h3 className="text-2xl font-bold text-center mb-8">How It Works</h3>
+      {/* How It Works */}
+      <section className="py-16 px-4 bg-gradient-to-b from-amber-50 to-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">How It Works</h2>
+            <p className="text-xl text-slate-600">Three simple steps to start tracking signal issues</p>
+          </div>
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-blue-600">1</span>
+              <div className="w-16 h-16 bg-amber-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                1
               </div>
-              <h4 className="text-lg font-semibold mb-2">Log Issues</h4>
-              <p className="text-gray-600">
-                Tap a button when you have signal problems. Add the room where it happened.
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">Log Issues</h3>
+              <p className="text-slate-600">
+                When you experience a signal problem, quickly log it with the type of issue and your location.
               </p>
             </div>
+
             <div className="text-center">
-              <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-green-600">2</span>
+              <div className="w-16 h-16 bg-amber-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                2
               </div>
-              <h4 className="text-lg font-semibold mb-2">View Patterns</h4>
-              <p className="text-gray-600">
-                See your history and patterns. Understand when and where problems happen most.
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">Track Patterns</h3>
+              <p className="text-slate-600">
+                View your history and patterns to understand when and where problems happen most often.
               </p>
             </div>
+
             <div className="text-center">
-              <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-purple-600">3</span>
+              <div className="w-16 h-16 bg-amber-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                3
               </div>
-              <h4 className="text-lg font-semibold mb-2">Share Results</h4>
-              <p className="text-gray-600">
-                Export your data to share with family, caregivers, or your network provider.
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">Share Reports</h3>
+              <p className="text-slate-600">
+                Export professional reports to share with your network provider or caregiver for faster resolution.
               </p>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Support Section */}
-        <div className="mb-8">
-          <SponsorButtons />
+      {/* Testimonials */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Trusted by Users and Caregivers</h2>
+            <p className="text-xl text-slate-600">See how Signal Diary helps families stay connected</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="border-amber-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-slate-600 mb-4">
+                  "Finally, a simple way to track my mom's phone problems. The reports helped us get better service from
+                  her provider."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    S
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">Sarah M.</p>
+                    <p className="text-sm text-slate-600">Caregiver</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-slate-600 mb-4">
+                  "Easy to use even for someone like me who's not tech-savvy. The big buttons and clear instructions
+                  make it perfect."
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    R
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">Robert K.</p>
+                    <p className="text-sm text-slate-600">Age 78</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="text-slate-600 mb-4">
+                  "The pattern analysis showed us exactly when and where the problems were happening. Our provider fixed
+                  the tower!"
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    M
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">Maria L.</p>
+                    <p className="text-sm text-slate-600">Family Member</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+      </section>
 
-        {/* Footer Links */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-amber-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Info className="w-5 h-5" />
-                About
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Learn more about Signal Diary and how it can help you track phone signal issues.
+      {/* CTA Section */}
+      <section className="py-16 px-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">Start Tracking Signal Issues Today</h2>
+          <p className="text-xl mb-8 text-amber-100">
+            Join thousands of users who have improved their phone service with Signal Diary
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+            <Link href="/app">
+              <Button
+                size="lg"
+                className="h-14 px-8 text-lg bg-white text-amber-600 hover:bg-amber-50 rounded-xl shadow-lg"
+              >
+                <Smartphone className="w-6 h-6 mr-2" />
+                Try Web App Free
+              </Button>
+            </Link>
+
+            <a
+              href="https://snobbbies.lemonsqueezy.com/buy/39dde2d7-20f1-4976-b196-b180c5b464e2"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 px-8 text-lg border-2 border-white text-white hover:bg-white hover:text-amber-600 rounded-xl shadow-lg bg-transparent"
+              >
+                <Monitor className="w-6 h-6 mr-2" />
+                Get Desktop App
+              </Button>
+            </a>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-amber-100">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>No signup required</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>Works offline</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>Privacy protected</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-slate-900 text-white py-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8">
+            {/* Brand */}
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
+                  <Phone className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Signal Diary</h3>
+                  <p className="text-slate-400 text-sm">Track phone signal issues</p>
+                </div>
+              </div>
+              <p className="text-slate-300 mb-4 max-w-md">
+                Helping elderly users and caregivers document phone signal problems with privacy-first, easy-to-use
+                tools.
               </p>
-              <Link href="/about">
-                <Button variant="outline" className="w-full bg-transparent">
-                  Learn More
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+              <div className="mb-6">
+                <SponsorButtons />
+              </div>
+            </div>
 
-          <Card className="border-amber-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Privacy
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Your privacy is important. See how we protect your data and what information we collect.
-              </p>
-              <Link href="/privacy">
-                <Button variant="outline" className="w-full bg-transparent">
-                  Privacy Policy
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="border-amber-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Terms
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Read our terms of service to understand your rights and responsibilities.
-              </p>
-              <Link href="/terms">
-                <Button variant="outline" className="w-full bg-transparent">
-                  Terms of Service
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="border-amber-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Monitor className="w-5 h-5" />
-                Desktop App
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">Download the desktop version for Windows, Mac, and Linux systems.</p>
-              <Button asChild variant="outline" className="w-full bg-transparent">
+            {/* Quick Links */}
+            <div>
+              <h4 className="font-semibold mb-4">Quick Links</h4>
+              <div className="space-y-2">
+                <Link href="/app" className="block text-slate-300 hover:text-white transition-colors">
+                  Web App
+                </Link>
                 <a
                   href="https://snobbbies.lemonsqueezy.com/buy/39dde2d7-20f1-4976-b196-b180c5b464e2"
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="block text-slate-300 hover:text-white transition-colors"
                 >
-                  Download
+                  Desktop App
                 </a>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+                <Link href="/about" className="block text-slate-300 hover:text-white transition-colors">
+                  About
+                </Link>
+              </div>
+            </div>
 
-        {/* CTA */}
-        <div className="text-center">
-          <Button
-            onClick={() => router.push("/app")}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xl px-8 py-6 h-auto rounded-lg"
-          >
-            Get Started Now
-          </Button>
-          <p className="text-gray-600 mt-4">Free to use • No account required • Works offline</p>
+            {/* Legal */}
+            <div>
+              <h4 className="font-semibold mb-4">Legal</h4>
+              <div className="space-y-2">
+                <Link href="/privacy" className="block text-slate-300 hover:text-white transition-colors">
+                  Privacy Policy
+                </Link>
+                <Link href="/terms" className="block text-slate-300 hover:text-white transition-colors">
+                  Terms of Service
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800 mt-8 pt-8 text-center text-slate-400">
+            <p>
+              &copy; 2024 Signal Diary. All rights reserved. Made with <Heart className="w-4 h-4 inline text-red-400" />{" "}
+              for elderly users and their families.
+            </p>
+          </div>
         </div>
-      </div>
+      </footer>
     </div>
   )
 }

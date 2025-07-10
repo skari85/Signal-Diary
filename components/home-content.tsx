@@ -5,291 +5,355 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SignalZero, PhoneOff, MessageSquareX, History, BarChart3, Settings, Wifi } from "lucide-react"
-import { useRouter } from "next/navigation"
-import PWAInstallPrompt from "@/components/pwa-install-prompt"
-import OfflineIndicator from "@/components/offline-indicator"
+import {
+  Phone,
+  PhoneOff,
+  MessageSquareX,
+  History,
+  TrendingUp,
+  Download,
+  Settings,
+  MapPin,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+} from "lucide-react"
+import Link from "next/link"
 
-interface SignalLog {
+interface LogEntry {
   id: string
-  type: "no_signal" | "call_failed" | "message_failed"
+  type: "no-signal" | "call-failed" | "message-failed"
   location: string
   timestamp: string
 }
 
-const commonLocations = [
-  "Kitchen",
-  "Living Room",
-  "Bedroom",
-  "Bathroom",
-  "Porch",
-  "Stairs",
-  "Basement",
-  "Garage",
-  "Garden",
-  "Office",
+const issueTypes = [
+  {
+    id: "no-signal" as const,
+    label: "No Signal",
+    description: "Phone shows no signal bars",
+    icon: PhoneOff,
+    color: "bg-red-500 hover:bg-red-600",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-200",
+  },
+  {
+    id: "call-failed" as const,
+    label: "Call Failed",
+    description: "Call couldn't connect or dropped",
+    icon: Phone,
+    color: "bg-orange-500 hover:bg-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+  },
+  {
+    id: "message-failed" as const,
+    label: "Message Didn't Send",
+    description: "Text message failed to send",
+    icon: MessageSquareX,
+    color: "bg-blue-500 hover:bg-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+  },
 ]
 
 export default function HomeContent() {
-  const [mounted, setMounted] = useState(false)
-  const [location, setLocation] = useState("")
-  const [useCustomLocation, setUseCustomLocation] = useState(false)
+  const [logs, setLogs] = useState<LogEntry[]>([])
   const [recentLocations, setRecentLocations] = useState<string[]>([])
-  const [logs, setLogs] = useState<SignalLog[]>([])
-  const router = useRouter()
+  const [currentLocation, setCurrentLocation] = useState("")
+  const [isLogging, setIsLogging] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-
-    // Load existing logs and recent locations
-    const savedLogs = localStorage.getItem("signalLogs")
-    if (savedLogs) {
-      const parsedLogs = JSON.parse(savedLogs)
-      setLogs(parsedLogs)
-
-      // Extract recent locations (last 5 unique locations)
-      const locations = parsedLogs
-        .map((log: SignalLog) => log.location)
-        .filter((loc: string) => loc.trim() !== "")
-        .reverse()
-
-      const uniqueLocations = [...new Set(locations)].slice(0, 5)
-      setRecentLocations(uniqueLocations)
-    }
+    loadData()
   }, [])
 
-  const logIssue = (type: "no_signal" | "call_failed" | "message_failed") => {
-    if (!mounted) return
+  const loadData = () => {
+    try {
+      // Load logs
+      const savedLogs = localStorage.getItem("signal-diary-logs")
+      if (savedLogs) {
+        const parsedLogs: LogEntry[] = JSON.parse(savedLogs)
+        setLogs(parsedLogs)
 
-    const newLog: SignalLog = {
-      id: Date.now().toString(),
-      type,
-      location: location.trim() || "Not specified",
-      timestamp: new Date().toISOString(),
+        // Extract recent locations
+        const locations = parsedLogs.map((log) => log.location).filter((loc) => loc && loc !== "Not specified")
+
+        const uniqueLocations = Array.from(new Set(locations)).slice(0, 5)
+        setRecentLocations(uniqueLocations)
+      }
+    } catch (error) {
+      console.error("Error loading data:", error)
     }
+  }
 
-    const updatedLogs = [...logs, newLog]
-    setLogs(updatedLogs)
-    localStorage.setItem("signalLogs", JSON.stringify(updatedLogs))
+  const logIssue = async (type: LogEntry["type"]) => {
+    if (isLogging) return
 
-    // Update recent locations
-    if (location.trim()) {
-      const newRecentLocations = [location.trim(), ...recentLocations.filter((loc) => loc !== location.trim())].slice(
-        0,
-        5,
-      )
-      setRecentLocations(newRecentLocations)
+    setIsLogging(true)
+
+    try {
+      const newEntry: LogEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        type,
+        location: currentLocation || "Not specified",
+        timestamp: new Date().toISOString(),
+      }
+
+      const updatedLogs = [newEntry, ...logs]
+      setLogs(updatedLogs)
+      localStorage.setItem("signal-diary-logs", JSON.stringify(updatedLogs))
+
+      // Update recent locations
+      if (currentLocation && currentLocation !== "Not specified") {
+        const newRecentLocations = [currentLocation, ...recentLocations.filter((loc) => loc !== currentLocation)].slice(
+          0,
+          5,
+        )
+        setRecentLocations(newRecentLocations)
+      }
+
+      // Clear location input
+      setCurrentLocation("")
+
+      // Show success feedback
+      const issueType = issueTypes.find((issue) => issue.id === type)
+      alert(`✓ ${issueType?.label} logged successfully!`)
+    } catch (error) {
+      console.error("Error logging issue:", error)
+      alert("Error logging issue. Please try again.")
+    } finally {
+      setIsLogging(false)
     }
+  }
 
-    // Show confirmation
-    const issueTypes = {
-      no_signal: "No Signal",
-      call_failed: "Call Failed",
-      message_failed: "Message Didn't Send",
+  const getRecentStats = () => {
+    const now = new Date()
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    const recentLogs = logs.filter((log) => new Date(log.timestamp) >= weekAgo)
+
+    return {
+      total: recentLogs.length,
+      noSignal: recentLogs.filter((log) => log.type === "no-signal").length,
+      callFailed: recentLogs.filter((log) => log.type === "call-failed").length,
+      messageFailed: recentLogs.filter((log) => log.type === "message-failed").length,
     }
-
-    alert(`${issueTypes[type]} logged successfully${location.trim() ? ` in ${location.trim()}` : ""}!`)
-
-    // Clear location for next entry
-    setLocation("")
   }
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-amber-50 to-amber-100 p-4">
-        <div className="max-w-md mx-auto">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gray-200 rounded-lg mx-auto mb-4 animate-pulse"></div>
-            <div className="h-8 bg-gray-200 rounded w-48 mx-auto animate-pulse"></div>
-          </div>
-          <div className="space-y-4">
-            <div className="h-16 bg-gray-200 rounded-lg animate-pulse"></div>
-            <div className="h-16 bg-gray-200 rounded-lg animate-pulse"></div>
-            <div className="h-16 bg-gray-200 rounded-lg animate-pulse"></div>
-          </div>
+      <div className="min-h-screen bg-amber-50 p-4">
+        <div className="max-w-md mx-auto space-y-6">
+          <div className="h-20 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div className="h-32 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div className="h-24 bg-gray-200 rounded-lg animate-pulse"></div>
         </div>
       </div>
     )
   }
 
+  const stats = getRecentStats()
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 to-amber-100 p-4">
-      <div className="max-w-md mx-auto">
-        <OfflineIndicator />
-        <PWAInstallPrompt />
-
+      <div className="max-w-md mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <img
-            src="/signal-diary-logo.png"
-            alt="Signal Diary"
-            width={64}
-            height={64}
-            className="mx-auto mb-4 rounded-lg"
-          />
+        <div className="text-center py-6">
+          <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Phone className="w-8 h-8 text-white" />
+          </div>
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Signal Diary</h1>
-          <p className="text-slate-600">Track your phone signal issues</p>
+          <p className="text-slate-600 text-lg">Track your phone signal issues</p>
         </div>
 
-        {/* Location Input */}
-        <Card className="mb-6 border-amber-200 bg-white/80 backdrop-blur-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Wifi className="w-5 h-5" />
-              Where did it happen?
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Button
-                variant={!useCustomLocation ? "default" : "outline"}
-                size="sm"
-                onClick={() => setUseCustomLocation(false)}
-                className="flex-1"
-              >
-                Choose Room
-              </Button>
-              <Button
-                variant={useCustomLocation ? "default" : "outline"}
-                size="sm"
-                onClick={() => setUseCustomLocation(true)}
-                className="flex-1"
-              >
-                Type Location
-              </Button>
-            </div>
-
-            {!useCustomLocation ? (
-              <div className="space-y-3">
-                {recentLocations.length > 0 && (
-                  <div>
-                    <Label className="text-sm text-gray-600 mb-2 block">Recent locations:</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {recentLocations.map((loc) => (
-                        <Button
-                          key={loc}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setLocation(loc)}
-                          className={`text-xs ${location === loc ? "bg-amber-100 border-amber-400" : ""}`}
-                        >
-                          {loc}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <Label htmlFor="location-select" className="text-sm text-gray-600 mb-2 block">
-                    Common rooms:
-                  </Label>
-                  <Select value={location} onValueChange={setLocation}>
-                    <SelectTrigger id="location-select" className="text-lg h-12">
-                      <SelectValue placeholder="Select a room..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {commonLocations.map((loc) => (
-                        <SelectItem key={loc} value={loc} className="text-lg py-3">
-                          {loc}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+        {/* Quick Stats */}
+        {stats.total > 0 && (
+          <Card className="border-2 border-purple-200 bg-purple-50 shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 mb-3">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+                <h2 className="text-lg font-semibold text-purple-900">This Week</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-900">{stats.total}</div>
+                  <div className="text-sm text-purple-700">Total Issues</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-900">{stats.noSignal}</div>
+                  <div className="text-sm text-purple-700">No Signal</div>
                 </div>
               </div>
-            ) : (
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Location Input */}
+        <Card className="border-2 border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <MapPin className="w-5 h-5" />
+              Current Location
+            </CardTitle>
+            <p className="text-sm text-slate-600">Optional: Where are you experiencing the issue?</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="location" className="text-lg font-medium">
+                Location (Optional)
+              </Label>
+              <Input
+                id="location"
+                value={currentLocation}
+                onChange={(e) => setCurrentLocation(e.target.value)}
+                placeholder="e.g., Home, Work, Main Street"
+                className="mt-2 h-12 text-lg border-2 border-slate-300 rounded-lg"
+              />
+            </div>
+
+            {recentLocations.length > 0 && (
               <div>
-                <Label htmlFor="location-input" className="text-sm text-gray-600 mb-2 block">
-                  Enter location:
-                </Label>
-                <Input
-                  id="location-input"
-                  type="text"
-                  placeholder="e.g., Kitchen, Porch, Stairs..."
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="text-lg h-12"
-                />
+                <Label className="text-sm font-medium text-slate-700">Recent Locations</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {recentLocations.map((location) => (
+                    <Button
+                      key={location}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentLocation(location)}
+                      className="text-sm border-amber-300 text-amber-700 hover:bg-amber-50"
+                    >
+                      {location}
+                    </Button>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Issue Buttons */}
-        <div className="space-y-4 mb-8">
-          <Button
-            onClick={() => logIssue("no_signal")}
-            className="w-full h-16 text-xl bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-lg"
-          >
-            <SignalZero className="w-8 h-8 mr-3" />
-            No Signal
-          </Button>
+        {/* Issue Logging Buttons */}
+        <Card className="border-2 border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl">What's the problem?</CardTitle>
+            <p className="text-sm text-slate-600">Tap the button that matches your issue</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {issueTypes.map((issue) => {
+              const Icon = issue.icon
+              return (
+                <Button
+                  key={issue.id}
+                  onClick={() => logIssue(issue.id)}
+                  disabled={isLogging}
+                  className={`w-full h-16 text-left ${issue.color} text-white font-semibold rounded-xl shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50`}
+                >
+                  <div className="flex items-center gap-4">
+                    <Icon className="w-8 h-8" />
+                    <div>
+                      <div className="text-lg font-bold">{issue.label}</div>
+                      <div className="text-sm opacity-90">{issue.description}</div>
+                    </div>
+                  </div>
+                </Button>
+              )
+            })}
+          </CardContent>
+        </Card>
 
-          <Button
-            onClick={() => logIssue("call_failed")}
-            className="w-full h-16 text-xl bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-lg"
-          >
-            <PhoneOff className="w-8 h-8 mr-3" />
-            Call Failed
-          </Button>
+        {/* Recent Activity */}
+        {logs.length > 0 && (
+          <Card className="border-2 border-slate-200 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Clock className="w-5 h-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {logs.slice(0, 3).map((log) => {
+                  const issue = issueTypes.find((i) => i.id === log.type)
+                  const date = new Date(log.timestamp)
+                  const Icon = issue?.icon || AlertTriangle
 
-          <Button
-            onClick={() => logIssue("message_failed")}
-            className="w-full h-16 text-xl bg-blue-500 hover:bg-blue-600 text-white rounded-xl shadow-lg"
-          >
-            <MessageSquareX className="w-8 h-8 mr-3" />
-            Message Didn't Send
-          </Button>
-        </div>
+                  return (
+                    <div key={log.id} className={`p-3 rounded-lg border-2 ${issue?.bgColor} ${issue?.borderColor}`}>
+                      <div className="flex items-start gap-3">
+                        <Icon className="w-5 h-5 mt-0.5 text-slate-600" />
+                        <div className="flex-1">
+                          <div className="font-medium text-slate-800">{issue?.label}</div>
+                          <div className="text-sm text-slate-600">
+                            {log.location} • {date.toLocaleDateString()} at{" "}
+                            {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Auto-save Notice */}
-        <div className="text-center mb-8">
-          <p className="text-sm text-slate-600 bg-white/60 rounded-lg px-4 py-2 border border-amber-200">
-            ✓ Your log is saved automatically
-          </p>
-        </div>
-
-        {/* Navigation Buttons */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Button
-            onClick={() => router.push("/app/history")}
-            variant="outline"
-            className="h-14 text-lg bg-white/80 border-amber-300 hover:bg-amber-50"
-          >
-            <History className="w-6 h-6 mr-2" />
-            History
-          </Button>
-
-          <Button
-            onClick={() => router.push("/app/patterns")}
-            variant="outline"
-            className="h-14 text-lg bg-white/80 border-amber-300 hover:bg-amber-50"
-          >
-            <BarChart3 className="w-6 h-6 mr-2" />
-            Patterns
-          </Button>
+        {/* Navigation */}
+        <div className="grid grid-cols-2 gap-4">
+          <Link href="/history">
+            <Button className="w-full h-14 text-lg bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-xl shadow-md">
+              <History className="w-6 h-6 mr-2" />
+              View History
+            </Button>
+          </Link>
+          <Link href="/patterns">
+            <Button className="w-full h-14 text-lg bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl shadow-md">
+              <TrendingUp className="w-6 h-6 mr-2" />
+              See Patterns
+            </Button>
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Button
-            onClick={() => router.push("/app/export")}
-            variant="outline"
-            className="h-14 text-lg bg-white/80 border-amber-300 hover:bg-amber-50"
-          >
-            <History className="w-6 h-6 mr-2" />
-            Export
-          </Button>
+          <Link href="/export">
+            <Button className="w-full h-14 text-lg bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md">
+              <Download className="w-6 h-6 mr-2" />
+              Export Data
+            </Button>
+          </Link>
+          <Link href="/settings">
+            <Button className="w-full h-14 text-lg bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-md">
+              <Settings className="w-6 h-6 mr-2" />
+              Settings
+            </Button>
+          </Link>
+        </div>
 
-          <Button
-            onClick={() => router.push("/app/settings")}
-            variant="outline"
-            className="h-14 text-lg bg-white/80 border-amber-300 hover:bg-amber-50"
-          >
-            <Settings className="w-6 h-6 mr-2" />
-            Settings
-          </Button>
+        {/* Welcome Message */}
+        {logs.length === 0 && (
+          <Card className="border-2 border-green-200 bg-green-50 shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
+                <div>
+                  <h3 className="font-semibold text-green-800 mb-1">Welcome to Signal Diary!</h3>
+                  <p className="text-sm text-green-700">
+                    When you experience a phone signal issue, use the buttons above to log it. Your data stays private
+                    on your device.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Footer */}
+        <div className="text-center py-4">
+          <p className="text-sm text-slate-500">Your data is stored locally and never shared automatically</p>
+          <Link href="/" className="text-sm text-amber-600 hover:text-amber-700 underline">
+            ← Back to Landing Page
+          </Link>
         </div>
       </div>
     </div>
