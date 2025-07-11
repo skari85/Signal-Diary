@@ -1,44 +1,63 @@
+"use client"
+
+import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-gradient-to-b from-amber-50 to-amber-100">
-      <main className="flex flex-1 flex-col items-center justify-center px-4">
-        <div className="max-w-lg w-full text-center">
-          <div className="flex justify-center mb-6">
-            <img
-              src="/signal-diary-logo.png"
-              alt="Signal Diary Logo"
-              width={120}
-              height={120}
-              className="mx-auto rounded-2xl shadow-lg"
-              style={{ background: '#fef7ed' }}
-            />
-          </div>
-          <h1 className="text-4xl font-extrabold text-slate-800 mb-4 tracking-tight drop-shadow-sm">
-            Signal Diary
-          </h1>
-          <p className="text-lg text-slate-600 mb-8">
-            Track your phone signal issues easily. Simple, private, and made for everyone.
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex flex-col">
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="text-center space-y-8">
+          <h1 className="text-6xl md:text-8xl font-bold text-amber-900 tracking-tight">Signal Diary</h1>
+
           <Link href="/">
-            <button className="mt-2 px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white text-lg font-semibold rounded-xl shadow-md transition">
+            <Button
+              size="lg"
+              className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 text-xl font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            >
               Enter
-            </button>
+            </Button>
           </Link>
         </div>
-      </main>
-      <footer className="w-full py-6 bg-amber-50 border-t border-amber-200 text-center text-slate-500 text-sm flex flex-col gap-2 items-center">
-        <div className="flex gap-4 justify-center">
-          <Link href="/history" className="hover:underline">History</Link>
-          <span>|</span>
-          <Link href="/patterns" className="hover:underline">Patterns</Link>
-          <span>|</span>
-          <Link href="/export" className="hover:underline">Export</Link>
-          <span>|</span>
-          <Link href="/settings" className="hover:underline">Settings</Link>
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-amber-900/10 border-t border-amber-200 py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-sm text-amber-800">
+            {/* About */}
+            <div>
+              <h3 className="font-semibold text-amber-900 mb-3">About</h3>
+              <p className="leading-relaxed">
+                Signal Diary helps you track mobile signal strength and connectivity issues. Perfect for documenting
+                network problems when contacting your carrier or identifying patterns in signal quality over time.
+              </p>
+            </div>
+
+            {/* Privacy */}
+            <div>
+              <h3 className="font-semibold text-amber-900 mb-3">Privacy</h3>
+              <p className="leading-relaxed">
+                All your signal data stays completely private on your device. We don't collect, store, or transmit any
+                personal information. Your signal logs are yours alone.
+              </p>
+            </div>
+
+            {/* Terms */}
+            <div>
+              <h3 className="font-semibold text-amber-900 mb-3">Terms</h3>
+              <p className="leading-relaxed">
+                Signal Diary is provided for personal use to help track connectivity issues. Use the data to communicate
+                with your mobile carrier about service problems. No warranty is provided for signal measurements.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-4 border-t border-amber-200 text-center text-amber-700">
+            <p>&copy; 2024 Signal Diary. All rights reserved.</p>
+          </div>
         </div>
-        <div>© {new Date().getFullYear()} Signal Diary</div>
       </footer>
     </div>
   )
