@@ -43,4 +43,4 @@ export default function HelpTooltip({ title, content, className = "" }: HelpTool
       )}
     </div>
   )
-} 
+}
