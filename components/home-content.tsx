@@ -12,6 +12,9 @@ import OptimizedImage from "./optimized-image"
 // Add these imports at the top
 import PWAInstallPrompt from "./pwa-install-prompt"
 import OfflineIndicator from "./offline-indicator"
+import Onboarding from "./onboarding"
+import HelpTooltip from "./help-tooltip"
+import LoadingSpinner from "./loading-spinner"
 import { useSignalDiary } from "@/hooks/use-signal-diary"
 import { toast } from "@/hooks/use-toast"
 
@@ -132,6 +135,10 @@ export default function HomeContent() {
             <CardTitle className="text-xl text-center text-slate-700 flex items-center justify-center gap-2">
               <MapPin className="w-6 h-6" />
               Where did it happen?
+              <HelpTooltip 
+                title="Location Tracking"
+                content="Choose where the signal issue occurred. This helps identify problem areas in your home and provides better evidence when contacting your phone company."
+              />
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -181,8 +188,7 @@ export default function HomeContent() {
                 />
                 <Button
                   onClick={switchToDropdown}
-                  variant="outline"
-                  className="w-full h-10 text-sm border-2 border-slate-300 rounded-lg bg-transparent"
+                  className="w-full h-10 text-sm border-2 border-slate-300 rounded-lg bg-transparent hover:bg-slate-50"
                   disabled={isSubmitting}
                 >
                   Or choose from common locations
@@ -208,7 +214,11 @@ export default function HomeContent() {
                 className={`w-full h-16 text-xl text-white font-semibold rounded-xl shadow-md ${className}`}
                 disabled={disabled}
               >
-                <Icon className="w-8 h-8 mr-3" />
+                {isSubmitting ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <Icon className="w-8 h-8 mr-3" />
+                )}
                 {label}
               </Button>
             ))}
@@ -248,6 +258,9 @@ export default function HomeContent() {
         {/* PWA Components */}
         <PWAInstallPrompt />
         <OfflineIndicator />
+        
+        {/* Onboarding */}
+        <Onboarding />
       </div>
     </div>
   )

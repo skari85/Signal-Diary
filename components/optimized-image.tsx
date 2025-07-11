@@ -10,9 +10,6 @@ interface OptimizedImageProps {
   height: number
   className?: string
   priority?: boolean
-  placeholder?: 'blur' | 'empty'
-  blurDataURL?: string
-  fallbackSrc?: string
 }
 
 export default function OptimizedImage({
@@ -22,9 +19,6 @@ export default function OptimizedImage({
   height,
   className = '',
   priority = false,
-  placeholder = 'empty',
-  blurDataURL,
-  fallbackSrc = '/placeholder.jpg',
 }: OptimizedImageProps) {
   const [imageSrc, setImageSrc] = useState(src)
   const [isLoading, setIsLoading] = useState(true)
@@ -36,8 +30,8 @@ export default function OptimizedImage({
   }
 
   const handleError = () => {
-    if (imageSrc !== fallbackSrc) {
-      setImageSrc(fallbackSrc)
+    if (imageSrc !== '/placeholder.jpg') {
+      setImageSrc('/placeholder.jpg')
       setHasError(true)
     } else {
       setIsLoading(false)
@@ -60,12 +54,15 @@ export default function OptimizedImage({
         className={`transition-opacity duration-300 ${
           isLoading ? 'opacity-0' : 'opacity-100'
         } ${hasError ? 'grayscale' : ''}`}
+        style={{
+          width: 'auto',
+          height: 'auto',
+          maxWidth: '100%',
+          maxHeight: '100%'
+        }}
         priority={priority}
-        placeholder={placeholder}
-        blurDataURL={blurDataURL}
         onLoad={handleLoad}
         onError={handleError}
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
     </div>
   )

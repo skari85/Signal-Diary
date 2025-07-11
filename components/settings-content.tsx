@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, User, MapPin, Save, Trash2, Phone, Wifi } from "lucide-react"
+import { ArrowLeft, User, MapPin, Save, Trash2, Phone, Wifi, HelpCircle, Globe } from "lucide-react"
 import Link from "next/link"
 
 interface UserProfile {
@@ -15,24 +15,62 @@ interface UserProfile {
   networkProvider: string
   customProvider: string
   phoneNumber: string
+  language: string
+  region: string
 }
 
 const NETWORK_PROVIDERS = [
-  { value: "verizon", label: "Verizon" },
-  { value: "att", label: "AT&T" },
-  { value: "tmobile", label: "T-Mobile" },
-  { value: "sprint", label: "Sprint" },
-  { value: "uscellular", label: "U.S. Cellular" },
-  { value: "cricket", label: "Cricket Wireless" },
-  { value: "boost", label: "Boost Mobile" },
-  { value: "metro", label: "Metro by T-Mobile" },
-  { value: "straight-talk", label: "Straight Talk" },
-  { value: "tracfone", label: "TracFone" },
-  { value: "consumer-cellular", label: "Consumer Cellular" },
-  { value: "xfinity", label: "Xfinity Mobile" },
-  { value: "visible", label: "Visible" },
-  { value: "mint", label: "Mint Mobile" },
-  { value: "other", label: "Other" },
+  // US Providers
+  { value: "verizon", label: "Verizon", region: "US" },
+  { value: "att", label: "AT&T", region: "US" },
+  { value: "tmobile", label: "T-Mobile", region: "US" },
+  { value: "sprint", label: "Sprint", region: "US" },
+  { value: "uscellular", label: "U.S. Cellular", region: "US" },
+  { value: "cricket", label: "Cricket Wireless", region: "US" },
+  { value: "boost", label: "Boost Mobile", region: "US" },
+  { value: "metro", label: "Metro by T-Mobile", region: "US" },
+  { value: "straight-talk", label: "Straight Talk", region: "US" },
+  { value: "tracfone", label: "TracFone", region: "US" },
+  { value: "consumer-cellular", label: "Consumer Cellular", region: "US" },
+  { value: "xfinity", label: "Xfinity Mobile", region: "US" },
+  { value: "visible", label: "Visible", region: "US" },
+  { value: "mint", label: "Mint Mobile", region: "US" },
+  { value: "google-fi", label: "Google Fi", region: "US" },
+  { value: "republic-wireless", label: "Republic Wireless", region: "US" },
+  { value: "ting", label: "Ting", region: "US" },
+  { value: "project-fi", label: "Project Fi", region: "US" },
+  
+  // Spanish Providers
+  { value: "movistar", label: "Movistar", region: "ES" },
+  { value: "vodafone-es", label: "Vodafone España", region: "ES" },
+  { value: "orange-es", label: "Orange España", region: "ES" },
+  { value: "yoigo", label: "Yoigo", region: "ES" },
+  { value: "masmovil", label: "MásMóvil", region: "ES" },
+  { value: "jazztel", label: "Jazztel", region: "ES" },
+  { value: "pepephone", label: "Pepephone", region: "ES" },
+  { value: "simyo", label: "Simyo", region: "ES" },
+  { value: "tuenti", label: "Tuenti", region: "ES" },
+  
+  // German Providers
+  { value: "telekom-de", label: "Telekom Deutschland", region: "DE" },
+  { value: "vodafone-de", label: "Vodafone Deutschland", region: "DE" },
+  { value: "o2-de", label: "O2 Deutschland", region: "DE" },
+  { value: "eplus", label: "E-Plus", region: "DE" },
+  { value: "blau", label: "Blau", region: "DE" },
+  { value: "alditalk", label: "Aldi Talk", region: "DE" },
+  { value: "lidl-connect", label: "Lidl Connect", region: "DE" },
+  { value: "congstar", label: "Congstar", region: "DE" },
+  { value: "freenet", label: "Freenet", region: "DE" },
+  { value: "otelo", label: "Otelo", region: "DE" },
+  
+  // Custom Provider
+  { value: "other", label: "Other (Custom Provider)", region: "ALL" },
+]
+
+const LANGUAGE_OPTIONS = [
+  { value: "en", label: "English (US)", region: "US" },
+  { value: "es", label: "Español (España)", region: "ES" },
+  { value: "de", label: "Deutsch (Deutschland)", region: "DE" },
 ]
 
 export default function SettingsContent() {
@@ -42,6 +80,8 @@ export default function SettingsContent() {
     networkProvider: "",
     customProvider: "",
     phoneNumber: "",
+    language: "en",
+    region: "US",
   })
   const [isSaved, setIsSaved] = useState(false)
 
@@ -57,6 +97,8 @@ export default function SettingsContent() {
         networkProvider: parsed.networkProvider || "",
         customProvider: parsed.customProvider || "",
         phoneNumber: parsed.phoneNumber || "",
+        language: parsed.language || "en",
+        region: parsed.region || "US",
       })
     }
   }, [])
@@ -75,6 +117,8 @@ export default function SettingsContent() {
         networkProvider: "",
         customProvider: "",
         phoneNumber: "",
+        language: "en",
+        region: "US",
       })
       localStorage.removeItem("signal-diary-profile")
     }
@@ -95,6 +139,8 @@ export default function SettingsContent() {
         networkProvider: "",
         customProvider: "",
         phoneNumber: "",
+        language: "en",
+        region: "US",
       })
       alert("All data has been cleared.")
     }
@@ -107,6 +153,11 @@ export default function SettingsContent() {
     const provider = NETWORK_PROVIDERS.find((p) => p.value === profile.networkProvider)
     return provider?.label || ""
   }
+
+  // Filter providers by selected region
+  const filteredProviders = NETWORK_PROVIDERS.filter(
+    (provider) => provider.region === profile.region || provider.region === "ALL"
+  )
 
   return (
     <div className="min-h-screen bg-amber-50 p-4">
@@ -179,15 +230,55 @@ export default function SettingsContent() {
           </CardContent>
         </Card>
 
+        {/* Language/Region Selector */}
+        <Card className="border-2 border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl text-slate-700 flex items-center gap-2">
+              <Globe className="w-6 h-6" />
+              Language & Region
+            </CardTitle>
+            <p className="text-sm text-slate-600">
+              Select your preferred language and country to see the most relevant service providers.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={profile.language}
+              onValueChange={(lang) => {
+                const selected = LANGUAGE_OPTIONS.find((l) => l.value === lang)
+                setProfile({ ...profile, language: lang, region: selected?.region || "US", networkProvider: "", customProvider: "" })
+              }}
+            >
+              <SelectTrigger className="h-12 text-lg border-2 border-slate-300 rounded-lg">
+                <SelectValue placeholder="Select language & region" />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
         {/* Network Provider */}
         <Card className="border-2 border-slate-200 shadow-lg">
           <CardHeader>
             <CardTitle className="text-xl text-slate-700 flex items-center gap-2">
               <Wifi className="w-6 h-6" />
               Network Provider
+              <button
+                onClick={() => alert("If your service provider isn't listed, select 'Other (Custom Provider)' and enter your provider's name. This will be included in your exported reports to help identify your carrier.")}
+                className="w-5 h-5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 flex items-center justify-center"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
             </CardTitle>
             <p className="text-sm text-slate-600">
-              Select your phone service provider. This helps route your reports to the right support team.
+              Select your phone service provider. This helps route your reports to the right support team. 
+              If your provider isn't listed, choose "Other (Custom Provider)" to add your own.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -203,7 +294,7 @@ export default function SettingsContent() {
                   <SelectValue placeholder="Select your provider" />
                 </SelectTrigger>
                 <SelectContent>
-                  {NETWORK_PROVIDERS.map((provider) => (
+                  {filteredProviders.map((provider) => (
                     <SelectItem key={provider.value} value={provider.value}>
                       {provider.label}
                     </SelectItem>
@@ -213,17 +304,20 @@ export default function SettingsContent() {
             </div>
 
             {profile.networkProvider === "other" && (
-              <div>
-                <label htmlFor="custom-provider" className="block text-lg font-medium text-slate-700 mb-2">
-                  Provider Name
+              <div className="border-2 border-amber-300 bg-amber-50 rounded-lg p-4">
+                <label htmlFor="custom-provider" className="block text-lg font-medium text-amber-900 mb-2">
+                  Enter Your Network Provider Name
                 </label>
                 <Input
                   id="custom-provider"
                   value={profile.customProvider}
                   onChange={(e) => setProfile({ ...profile, customProvider: e.target.value })}
-                  placeholder="Enter your provider name"
-                  className="h-12 text-lg border-2 border-slate-300 rounded-lg"
+                  placeholder="e.g., Regional Mobile, Local Carrier, etc."
+                  className="h-12 text-lg border-2 border-amber-300 rounded-lg bg-white"
                 />
+                <p className="text-sm text-amber-800 mt-2">
+                  This will be saved and used in your exported reports to help identify your service provider.
+                </p>
               </div>
             )}
 

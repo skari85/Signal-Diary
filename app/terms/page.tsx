@@ -20,16 +20,16 @@ export default function TermsPage() {
             <h1 className="text-4xl font-light text-gray-900 mb-6">Terms of Service</h1>
             <div className="prose prose-lg text-gray-600 space-y-6">
               <p>
-                Signal Diary is provided as a free tool to help you understand your phone's signal strength. By using
+                Signal Diary is provided as a free tool to help you manually log and track phone signal issues. By using
                 this app, you agree to these simple terms.
               </p>
 
               <h2 className="text-2xl font-medium text-gray-900 mt-8 mb-4">What Signal Diary Does</h2>
               <ul className="space-y-2">
-                <li>• Measures and records your phone's signal strength</li>
-                <li>• Helps you track connectivity patterns over time</li>
+                <li>• Helps you manually log when you experience signal issues</li>
+                <li>• Tracks connectivity patterns over time through your manual entries</li>
                 <li>• Provides data you can share with family or your phone company</li>
-                <li>• Works as a diagnostic tool for understanding phone issues</li>
+                <li>• Works as a logging tool for understanding phone connectivity issues</li>
               </ul>
 
               <h2 className="text-2xl font-medium text-gray-900 mt-8 mb-4">Your Responsibilities</h2>
@@ -50,8 +50,8 @@ export default function TermsPage() {
                 have backup communication methods for emergencies.
               </p>
               <p>
-                <strong>Signal Readings:</strong> Signal strength measurements are estimates and may vary based on your
-                device and location. They're helpful for understanding patterns but may not be perfectly accurate.
+                <strong>Manual Logging:</strong> Signal Diary relies on your manual entries. The accuracy of the data depends on 
+                how consistently you log your experiences. This is a logging tool, not a diagnostic device.
               </p>
 
               <h2 className="text-2xl font-medium text-gray-900 mt-8 mb-4">Limitation of Liability</h2>

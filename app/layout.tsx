@@ -8,12 +8,13 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ 
   subsets: ["latin"],
   display: 'swap',
-  preload: true,
+  preload: false,
+  fallback: ['system-ui', 'arial'],
 })
 
 export const metadata: Metadata = {
   title: "Signal Diary - Track Phone Signal Issues",
-  description: "A simple app to help elderly users log and track phone signal problems",
+  description: "A simple manual logging app to help elderly users log and track phone signal problems",
   manifest: "/manifest.json",
   formatDetection: {
     telephone: false,

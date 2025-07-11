@@ -124,10 +124,10 @@ export default function PrivacyPage() {
 
             <div className="space-y-6">
               <div className="space-y-3">
-                <h3 className="text-xl font-medium text-gray-900">Signal Strength Access</h3>
+                <h3 className="text-xl font-medium text-gray-900">Manual Logging Only</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Signal Diary only accesses your device's signal strength information, which is already available to
-                  your phone's operating system. This is the same information you see in your signal bars.
+                  Signal Diary is a completely manual logging app. We don't access any signal strength information from your device. 
+                  You manually log when you experience signal issues, missed calls, or delayed messages.
                 </p>
               </div>
 

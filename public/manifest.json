@@ -1,7 +1,7 @@
 {
   "name": "Signal Diary - Track Phone Signal Issues",
   "short_name": "Signal Diary",
-  "description": "A simple app to help track phone signal problems and share with caregivers or network providers",
+  "description": "A simple manual logging app to help track phone signal problems and share with caregivers or network providers",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fef7ed",

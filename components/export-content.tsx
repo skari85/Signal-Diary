@@ -56,19 +56,115 @@ const NETWORK_PROVIDERS = [
   { value: "xfinity", label: "Xfinity Mobile", supportEmail: "support@xfinity.com", supportPhone: "1-888-936-4968" },
   { value: "visible", label: "Visible", supportEmail: "support@visible.com", supportPhone: "1-888-294-6804" },
   { value: "mint", label: "Mint Mobile", supportEmail: "support@mintmobile.com", supportPhone: "1-800-683-7392" },
+  { value: "google-fi", label: "Google Fi", supportEmail: "support@google.com", supportPhone: "1-844-825-3554" },
+  { value: "republic-wireless", label: "Republic Wireless", supportEmail: "support@republicwireless.com", supportPhone: "1-855-754-1206" },
+  { value: "ting", label: "Ting", supportEmail: "support@ting.com", supportPhone: "1-855-846-4389" },
+  { value: "project-fi", label: "Project Fi", supportEmail: "support@google.com", supportPhone: "1-844-825-3554" },
   { value: "other", label: "Other", supportEmail: "", supportPhone: "" },
 ]
 
-const getTypeLabel = (type: string) => {
-  switch (type) {
-    case "no-signal":
-      return "No Signal"
-    case "call-failed":
-      return "Call Failed"
-    case "message-failed":
-      return "Message Didn't Send"
-    default:
-      return type
+// Add translation map with types
+interface Translation {
+  reportTitle: string;
+  generatedOn: string;
+  customerInfo: string;
+  name: string;
+  phoneNumber: string;
+  address: string;
+  networkProvider: string;
+  providerSupport: string;
+  provider: string;
+  supportPhone: string;
+  supportEmail: string;
+  issueSummary: string;
+  totalIssues: string;
+  noSignal: string;
+  callFailed: string;
+  messageFailed: string;
+  urgentTitle: string;
+  urgentMsg: (count: number) => string;
+  tableHeaders: string[];
+  typeLabels: Record<string, string>;
+}
+
+const TRANSLATIONS: Record<string, Translation> = {
+  en: {
+    reportTitle: "Signal Diary Report",
+    generatedOn: "Generated on:",
+    customerInfo: "Customer Information",
+    name: "Name",
+    phoneNumber: "Phone Number",
+    address: "Address",
+    networkProvider: "Network Provider",
+    providerSupport: "Network Provider Support Information",
+    provider: "Provider",
+    supportPhone: "Support Phone",
+    supportEmail: "Support Email",
+    issueSummary: "Issue Summary",
+    totalIssues: "Total Issues Logged:",
+    noSignal: "No Signal Issues:",
+    callFailed: "Call Failed Issues:",
+    messageFailed: "Message Failed Issues:",
+    urgentTitle: "⚠️ Frequent Signal Issues Detected",
+    urgentMsg: (count: number) => `This customer has logged ${count} signal issues. This may indicate a network coverage problem that requires immediate attention.`,
+    tableHeaders: ["Date", "Time", "Issue Type", "Location"],
+    typeLabels: {
+      "no-signal": "No Signal",
+      "call-failed": "Call Failed",
+      "message-failed": "Message Didn't Send"
+    }
+  },
+  es: {
+    reportTitle: "Informe de Signal Diary",
+    generatedOn: "Generado el:",
+    customerInfo: "Información del Cliente",
+    name: "Nombre",
+    phoneNumber: "Número de Teléfono",
+    address: "Dirección",
+    networkProvider: "Proveedor de Red",
+    providerSupport: "Información de Soporte del Proveedor",
+    provider: "Proveedor",
+    supportPhone: "Teléfono de Soporte",
+    supportEmail: "Correo de Soporte",
+    issueSummary: "Resumen de Incidencias",
+    totalIssues: "Total de Incidencias Registradas:",
+    noSignal: "Incidencias de Sin Señal:",
+    callFailed: "Incidencias de Llamada Fallida:",
+    messageFailed: "Incidencias de Mensaje Fallido:",
+    urgentTitle: "⚠️ Se Detectaron Incidencias Frecuentes de Señal",
+    urgentMsg: (count: number) => `Este cliente ha registrado ${count} incidencias de señal. Esto puede indicar un problema de cobertura que requiere atención inmediata.`,
+    tableHeaders: ["Fecha", "Hora", "Tipo de Incidencia", "Ubicación"],
+    typeLabels: {
+      "no-signal": "Sin Señal",
+      "call-failed": "Llamada Fallida",
+      "message-failed": "Mensaje No Enviado"
+    }
+  },
+  de: {
+    reportTitle: "Signal Diary Bericht",
+    generatedOn: "Erstellt am:",
+    customerInfo: "Kundeninformation",
+    name: "Name",
+    phoneNumber: "Telefonnummer",
+    address: "Adresse",
+    networkProvider: "Netzbetreiber",
+    providerSupport: "Netzbetreiber Support-Informationen",
+    provider: "Anbieter",
+    supportPhone: "Support-Telefon",
+    supportEmail: "Support-E-Mail",
+    issueSummary: "Problemübersicht",
+    totalIssues: "Gesamtzahl der protokollierten Probleme:",
+    noSignal: "Kein Signal Probleme:",
+    callFailed: "Anruf fehlgeschlagen Probleme:",
+    messageFailed: "Nachricht fehlgeschlagen Probleme:",
+    urgentTitle: "⚠️ Häufige Signalprobleme erkannt",
+    urgentMsg: (count: number) => `Dieser Kunde hat ${count} Signalprobleme protokolliert. Dies kann auf ein Netzabdeckungsproblem hinweisen, das sofortige Aufmerksamkeit erfordert.`,
+    tableHeaders: ["Datum", "Uhrzeit", "Problemtyp", "Ort"],
+    typeLabels: {
+      "no-signal": "Kein Signal",
+      "call-failed": "Anruf fehlgeschlagen",
+      "message-failed": "Nachricht fehlgeschlagen"
+    }
   }
 }
 
@@ -121,6 +217,12 @@ export default function ExportContent() {
       : null
   }
 
+  // Use language from profile, fallback to 'en'
+  const lang = (profile as any).language || 'en'
+  const t: Translation = TRANSLATIONS[lang] || TRANSLATIONS['en']
+
+  const getTypeLabel = (type: string) => t.typeLabels[type] || type
+
   const downloadCSV = () => {
     if (logs.length === 0) {
       alert("No data to export")
@@ -131,22 +233,22 @@ export default function ExportContent() {
 
     // Add user information if available
     if (profile.name || profile.address || profile.phoneNumber || profile.networkProvider) {
-      csvContent += "User Information\n"
-      if (profile.name) csvContent += `Name,"${profile.name}"\n`
-      if (profile.phoneNumber) csvContent += `Phone Number,"${profile.phoneNumber}"\n`
-      if (profile.address) csvContent += `Address,"${profile.address.replace(/\n/g, " ")}"\n`
+      csvContent += `${t.customerInfo}\n`
+      if (profile.name) csvContent += `${t.name},"${profile.name}"\n`
+      if (profile.phoneNumber) csvContent += `${t.phoneNumber},"${profile.phoneNumber}"\n`
+      if (profile.address) csvContent += `${t.address},"${profile.address.replace(/\n/g, " ")}"\n`
 
       const providerInfo = getProviderInfo()
       if (providerInfo) {
-        csvContent += `Network Provider,"${providerInfo.name}"\n`
-        if (providerInfo.supportEmail) csvContent += `Provider Support Email,"${providerInfo.supportEmail}"\n`
-        if (providerInfo.supportPhone) csvContent += `Provider Support Phone,"${providerInfo.supportPhone}"\n`
+        csvContent += `${t.networkProvider},"${providerInfo.name}"\n`
+        if (providerInfo.supportEmail) csvContent += `${t.supportEmail},"${providerInfo.supportEmail}"\n`
+        if (providerInfo.supportPhone) csvContent += `${t.supportPhone},"${providerInfo.supportPhone}"\n`
       }
       csvContent += "\n"
     }
 
     // Add headers and data
-    const headers = ["Date", "Time", "Issue Type", "Location"]
+    const headers = t.tableHeaders
     csvContent += headers.join(",") + "\n"
     csvContent += logs
       .map((log) => {
@@ -178,13 +280,13 @@ export default function ExportContent() {
       profile.name || profile.address || profile.phoneNumber || providerInfo
         ? `
       <div class="user-info">
-        <h2>Customer Information</h2>
-        ${profile.name ? `<p><strong>Name:</strong> ${profile.name}</p>` : ""}
-        ${profile.phoneNumber ? `<p><strong>Phone Number:</strong> ${profile.phoneNumber}</p>` : ""}
-        ${profile.address ? `<p><strong>Address:</strong> ${profile.address.replace(/\n/g, "<br>")}</p>` : ""}
-        ${providerInfo ? `<p><strong>Network Provider:</strong> ${providerInfo.name}</p>` : ""}
-        ${providerInfo?.supportEmail ? `<p><strong>Provider Support Email:</strong> ${providerInfo.supportEmail}</p>` : ""}
-        ${providerInfo?.supportPhone ? `<p><strong>Provider Support Phone:</strong> ${providerInfo.supportPhone}</p>` : ""}
+        <h2>${t.customerInfo}</h2>
+        ${profile.name ? `<p><strong>${t.name}:</strong> ${profile.name}</p>` : ""}
+        ${profile.phoneNumber ? `<p><strong>${t.phoneNumber}:</strong> ${profile.phoneNumber}</p>` : ""}
+        ${profile.address ? `<p><strong>${t.address}:</strong> ${profile.address.replace(/\n/g, "<br>")}</p>` : ""}
+        ${providerInfo ? `<p><strong>${t.networkProvider}:</strong> ${providerInfo.name}</p>` : ""}
+        ${providerInfo?.supportEmail ? `<p><strong>${t.supportEmail}:</strong> ${providerInfo.supportEmail}</p>` : ""}
+        ${providerInfo?.supportPhone ? `<p><strong>${t.supportPhone}:</strong> ${providerInfo.supportPhone}</p>` : ""}
       </div>
     `
         : ""
@@ -193,7 +295,7 @@ export default function ExportContent() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Signal Diary Report</title>
+          <title>${t.reportTitle}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
             h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
@@ -209,8 +311,8 @@ export default function ExportContent() {
           </style>
         </head>
         <body>
-          <h1>Signal Diary Report</h1>
-          <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          <h1>${t.reportTitle}</h1>
+          <p><strong>${t.generatedOn}</strong> ${new Date().toLocaleDateString()} ${lang === 'de' ? 'um' : lang === 'es' ? 'a las' : 'at'} ${new Date().toLocaleTimeString()}</p>
           
           ${userInfoSection}
 
@@ -218,65 +320,52 @@ export default function ExportContent() {
             providerInfo
               ? `
           <div class="provider-info">
-            <h3>Network Provider Support Information</h3>
-            <p><strong>Provider:</strong> ${providerInfo.name}</p>
-            ${providerInfo.supportPhone ? `<p><strong>Support Phone:</strong> ${providerInfo.supportPhone}</p>` : ""}
-            ${providerInfo.supportEmail ? `<p><strong>Support Email:</strong> ${providerInfo.supportEmail}</p>` : ""}
+            <h3>${t.providerSupport}</h3>
+            <p><strong>${t.provider}:</strong> ${providerInfo.name}</p>
+            ${providerInfo.supportPhone ? `<p><strong>${t.supportPhone}:</strong> ${providerInfo.supportPhone}</p>` : ""}
+            ${providerInfo.supportEmail ? `<p><strong>${t.supportEmail}:</strong> ${providerInfo.supportEmail}</p>` : ""}
           </div>
           `
               : ""
           }
 
           <div class="summary">
-            <h2>Issue Summary</h2>
-            <p><strong>Total Issues Logged:</strong> ${logs.length}</p>
-            <p><strong>No Signal Issues:</strong> ${logs.filter((l) => l.type === "no-signal").length}</p>
-            <p><strong>Call Failed Issues:</strong> ${logs.filter((l) => l.type === "call-failed").length}</p>
-            <p><strong>Message Failed Issues:</strong> ${logs.filter((l) => l.type === "message-failed").length}</p>
+            <h2>${t.issueSummary}</h2>
+            <p><strong>${t.totalIssues}</strong> ${logs.length}</p>
+            <p><strong>${t.noSignal}</strong> ${logs.filter((l) => l.type === "no-signal").length}</p>
+            <p><strong>${t.callFailed}</strong> ${logs.filter((l) => l.type === "call-failed").length}</p>
+            <p><strong>${t.messageFailed}</strong> ${logs.filter((l) => l.type === "message-failed").length}</p>
           </div>
 
           ${
             logs.length >= 5
               ? `
           <div class="urgent">
-            <h3>⚠️ Frequent Signal Issues Detected</h3>
-            <p>This customer has logged ${logs.length} signal issues. This may indicate a network coverage problem that requires immediate attention.</p>
+            <h3>${t.urgentTitle}</h3>
+            <p>${t.urgentMsg(logs.length)}</p>
           </div>
           `
               : ""
           }
 
-          <h2>Detailed Issue Log</h2>
           <table>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Issue Type</th>
-                <th>Location</th>
+                ${t.tableHeaders.map((h: string) => `<th>${h}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
               ${logs
                 .map((log) => {
                   const { date, time } = formatDate(log.timestamp)
-                  return `
-                <tr>
-                  <td>${date}</td>
-                  <td>${time}</td>
-                  <td>${getTypeLabel(log.type)}</td>
-                  <td>${log.location}</td>
-                </tr>
-              `
+                  return `<tr><td>${date}</td><td>${time}</td><td>${getTypeLabel(log.type)}</td><td>${log.location}</td></tr>`
                 })
                 .join("")}
             </tbody>
           </table>
 
           <div class="footer">
-            <p>This report was generated by Signal Diary - a tool to help track phone signal issues.</p>
-            <p><strong>For Network Provider:</strong> Please use the customer information above to locate the account and investigate the reported signal issues.</p>
-            <p><strong>For Caregivers:</strong> Share this report with the network provider's customer service to help resolve connectivity problems.</p>
+            Signal Diary &copy; ${new Date().getFullYear()}
           </div>
         </body>
       </html>
@@ -284,6 +373,7 @@ export default function ExportContent() {
 
     printWindow.document.write(reportHTML)
     printWindow.document.close()
+    printWindow.focus()
     printWindow.print()
   }
 
