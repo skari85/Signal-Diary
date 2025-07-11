@@ -2,20 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  ArrowLeft,
-  Download,
-  FileText,
-  Printer,
-  WifiOff,
-  AlertTriangle,
-  CheckCircle,
-  User,
-  Phone,
-  Wifi,
-} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ArrowLeft, Download, Printer, FileText, User, Phone, Wifi } from "lucide-react"
 import Link from "next/link"
 
 interface LogEntry {
@@ -24,8 +12,6 @@ interface LogEntry {
   location: string
   timestamp: string
   notes?: string
-  duration?: string
-  signalStrength?: string
 }
 
 interface UserProfile {
@@ -104,7 +90,6 @@ export default function ExportContent() {
     customProvider: "",
     phoneNumber: "",
   })
-  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     const savedLogs = localStorage.getItem("signal-diary-logs")
@@ -137,39 +122,8 @@ export default function ExportContent() {
       : null
   }
 
-  // Calculate connection status based on entries
-  const getConnectionStatus = () => {
-    const totalIssues = logs.length
-    if (totalIssues === 0)
-      return { status: "Good", color: "bg-green-500", icon: CheckCircle, textColor: "text-green-800" }
-    if (totalIssues <= 2)
-      return { status: "Light Issues", color: "bg-yellow-500", icon: AlertTriangle, textColor: "text-yellow-800" }
-    if (totalIssues <= 5) return { status: "Fair", color: "bg-orange-500", icon: WifiOff, textColor: "text-orange-800" }
-    return { status: "Poor", color: "bg-red-500", icon: WifiOff, textColor: "text-red-800" }
-  }
-
-  // Get most common issue type
-  const getMostCommonIssue = () => {
-    if (logs.length === 0) return "No issues recorded"
-    const issueCounts = logs.reduce(
-      (acc, entry) => {
-        acc[entry.type] = (acc[entry.type] || 0) + 1
-        return acc
-      },
-      {} as Record<string, number>,
-    )
-    const mostCommon = Object.entries(issueCounts).sort(([, a], [, b]) => b - a)[0]
-    return getTypeLabel(mostCommon[0])
-  }
-
-  // Get affected locations
-  const getAffectedLocations = () => {
-    const locations = [...new Set(logs.map((entry) => entry.location))]
-    return locations.length > 0 ? locations.slice(0, 3).join(", ") : "Not specified"
-  }
-
   const generateConnectionReport = () => {
-    const connectionStatus = getConnectionStatus()
+    const providerInfo = getProviderInfo()
     const weeklyStats = {
       total: logs.length,
       noSignal: logs.filter((l) => l.type === "no-signal").length,
@@ -177,12 +131,27 @@ export default function ExportContent() {
       messageFailed: logs.filter((l) => l.type === "message-failed").length,
     }
 
+    // Determine connection status
+    let connectionStatus = "Good"
+    if (logs.length >= 10) {
+      connectionStatus = "Poor - Frequent Issues"
+    } else if (logs.length >= 5) {
+      connectionStatus = "Fair - Moderate Issues"
+    } else if (logs.length >= 2) {
+      connectionStatus = "Light Issues Detected"
+    }
+
     return {
-      connectionStatus: connectionStatus.status,
+      connectionStatus,
       weeklyStats,
-      providerInfo: getProviderInfo(),
+      providerInfo,
       issueFrequency: logs.length > 0 ? `${logs.length} issues in the last 30 days` : "No issues reported",
-      mostCommonIssue: getMostCommonIssue(),
+      mostCommonIssue:
+        weeklyStats.noSignal >= weeklyStats.callFailed && weeklyStats.noSignal >= weeklyStats.messageFailed
+          ? "No Signal"
+          : weeklyStats.callFailed >= weeklyStats.messageFailed
+            ? "Call Failed"
+            : "Message Failed",
       affectedLocations: [...new Set(logs.map((l) => l.location))].slice(0, 5),
     }
   }
@@ -193,17 +162,12 @@ export default function ExportContent() {
       return
     }
 
-    setIsExporting(true)
     const connectionReport = generateConnectionReport()
-    const reportDate = new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString()
-    const reportId = `SD-${Date.now().toString().slice(-6)}`
-
     let csvContent = ""
 
     // Add connection status report
-    csvContent += "SIGNAL DIARY - NETWORK CONNECTION REPORT\n"
-    csvContent += `Report ID,${reportId}\n`
-    csvContent += `Report Generated,${reportDate}\n`
+    csvContent += "CONNECTION STATUS REPORT\n"
+    csvContent += `Report Generated,${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\n`
     csvContent += `Connection Status,"${connectionReport.connectionStatus}"\n`
     csvContent += `Issue Frequency,"${connectionReport.issueFrequency}"\n`
     csvContent += `Most Common Issue,"${connectionReport.mostCommonIssue}"\n`
@@ -236,28 +200,14 @@ export default function ExportContent() {
 
     // Add detailed log
     csvContent += "DETAILED ISSUE LOG\n"
-    const headers = ["Date", "Time", "Issue Type", "Location", "Duration", "Signal Strength", "Notes"]
+    const headers = ["Date", "Time", "Issue Type", "Location", "Notes"]
     csvContent += headers.join(",") + "\n"
     csvContent += logs
       .map((log) => {
         const { date, time } = formatDate(log.timestamp)
-        return [
-          date,
-          time,
-          getTypeLabel(log.type),
-          `"${log.location}"`,
-          `"${log.duration || "N/A"}"`,
-          `"${log.signalStrength || "N/A"}"`,
-          `"${log.notes || "N/A"}"`,
-        ].join(",")
+        return [date, time, getTypeLabel(log.type), `"${log.location}"`, `"${log.notes || "N/A"}"`].join(",")
       })
       .join("\n")
-
-    // Add provider support section
-    csvContent += "\n\nPROVIDER SUPPORT INFORMATION\n"
-    csvContent += "This report documents network connectivity issues for technical investigation.\n"
-    csvContent += `Please reference Report ID: ${reportId} when contacting support.\n`
-    csvContent += "Customer requests investigation and resolution of documented connectivity issues.\n"
 
     const blob = new Blob([csvContent], { type: "text/csv" })
     const url = window.URL.createObjectURL(blob)
@@ -266,8 +216,6 @@ export default function ExportContent() {
     a.download = `signal-connection-report-${new Date().toISOString().split("T")[0]}.csv`
     a.click()
     window.URL.revokeObjectURL(url)
-
-    setTimeout(() => setIsExporting(false), 1000)
   }
 
   const printReport = () => {
@@ -277,8 +225,6 @@ export default function ExportContent() {
     }
 
     const connectionReport = generateConnectionReport()
-    const reportDate = new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString()
-    const reportId = `SD-${Date.now().toString().slice(-6)}`
     const printWindow = window.open("", "_blank")
     if (!printWindow) return
 
@@ -302,57 +248,39 @@ export default function ExportContent() {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>Signal Diary - Network Connection Report</title>
+        <title>Network Connection Report</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-          .report-header { background-color: #1e293b; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-          h1 { color: white; border: none; margin: 0; }
+          h1 { color: #1e293b; border-bottom: 3px solid #e2e8f0; padding-bottom: 10px; }
           h2 { color: #475569; margin-top: 30px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
           h3 { color: #64748b; margin-top: 20px; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
           th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; }
           th { background-color: #f8fafc; font-weight: bold; }
-          .connection-status { padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #0ea5e9; }
+          .connection-status { background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #0ea5e9; }
           .status-good { border-color: #22c55e; background-color: #f0fdf4; }
-          .status-light { border-color: #f59e0b; background-color: #fffbeb; }
-          .status-fair { border-color: #ea580c; background-color: #fff7ed; }
+          .status-fair { border-color: #f59e0b; background-color: #fffbeb; }
           .status-poor { border-color: #ef4444; background-color: #fef2f2; }
           .summary { background-color: #fef7ed; padding: 20px; border-radius: 8px; margin: 20px 0; }
           .user-info { background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #0ea5e9; }
           .provider-info { background-color: #f0fdf4; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #22c55e; }
           .footer { margin-top: 40px; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 20px; }
           .urgent { background-color: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; margin: 20px 0; }
-          .status-indicator { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-left: 10px; color: white; }
+          .report-header { background-color: #1e293b; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+          .status-indicator { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-left: 10px; }
         </style>
       </head>
       <body>
         <div class="report-header">
-          <h1>Signal Diary - Network Connection Report</h1>
-          <p style="margin: 5px 0 0 0; opacity: 0.9;"><strong>Report ID:</strong> ${reportId}</p>
-          <p style="margin: 5px 0 0 0; opacity: 0.9;"><strong>Generated:</strong> ${reportDate}</p>
+          <h1 style="color: white; border: none; margin: 0;">Network Connection Report</h1>
+          <p style="margin: 5px 0 0 0; opacity: 0.9;"><strong>Generated:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
         </div>
         
-        <div class="connection-status ${connectionReport.connectionStatus.toLowerCase().replace(" ", "-")}">
+        <div class="connection-status ${connectionReport.connectionStatus.includes("Poor") ? "status-poor" : connectionReport.connectionStatus.includes("Fair") ? "status-fair" : "status-good"}">
           <h2 style="margin-top: 0;">Connection Status Assessment</h2>
           <p><strong>Overall Status:</strong> ${connectionReport.connectionStatus}
-            <span class="status-indicator" style="background-color: ${
-              connectionReport.connectionStatus.includes("Poor")
-                ? "#ef4444"
-                : connectionReport.connectionStatus.includes("Fair")
-                  ? "#ea580c"
-                  : connectionReport.connectionStatus.includes("Light")
-                    ? "#f59e0b"
-                    : "#22c55e"
-            };">
-              ${
-                connectionReport.connectionStatus.includes("Poor")
-                  ? "NEEDS ATTENTION"
-                  : connectionReport.connectionStatus.includes("Fair")
-                    ? "MONITORING REQUIRED"
-                    : connectionReport.connectionStatus.includes("Light")
-                      ? "LIGHT ISSUES"
-                      : "STABLE"
-              }
+            <span class="status-indicator" style="background-color: ${connectionReport.connectionStatus.includes("Poor") ? "#ef4444" : connectionReport.connectionStatus.includes("Fair") ? "#f59e0b" : "#22c55e"}; color: white;">
+              ${connectionReport.connectionStatus.includes("Poor") ? "NEEDS ATTENTION" : connectionReport.connectionStatus.includes("Fair") ? "MONITORING" : "STABLE"}
             </span>
           </p>
           <p><strong>Issue Frequency:</strong> ${connectionReport.issueFrequency}</p>
@@ -370,7 +298,7 @@ export default function ExportContent() {
           <p><strong>Provider:</strong> ${providerInfo.name}</p>
           ${providerInfo.supportPhone ? `<p><strong>Support Phone:</strong> ${providerInfo.supportPhone}</p>` : ""}
           ${providerInfo.supportEmail ? `<p><strong>Support Email:</strong> ${providerInfo.supportEmail}</p>` : ""}
-          <p><em>Please reference Report ID ${reportId} when contacting support for faster resolution.</em></p>
+          <p><em>Please reference this report when contacting support for faster resolution.</em></p>
         </div>
         `
             : ""
@@ -404,7 +332,6 @@ export default function ExportContent() {
         <div class="urgent" style="background-color: #fffbeb; border-left-color: #f59e0b;">
           <h3>📊 Light Connection Issues Detected</h3>
           <p>This customer has reported ${logs.length} connectivity issues. While not critical, monitoring is recommended to prevent escalation.</p>
-          <p><strong>Recommendation:</strong> Contact customer to discuss patterns and potential solutions.</p>
         </div>
         `
               : ""
@@ -418,8 +345,6 @@ export default function ExportContent() {
               <th>Time</th>
               <th>Issue Type</th>
               <th>Location</th>
-              <th>Duration</th>
-              <th>Signal Strength</th>
               <th>Notes</th>
             </tr>
           </thead>
@@ -433,8 +358,6 @@ export default function ExportContent() {
                 <td>${time}</td>
                 <td>${getTypeLabel(log.type)}</td>
                 <td>${log.location}</td>
-                <td>${log.duration || "N/A"}</td>
-                <td>${log.signalStrength || "N/A"}</td>
                 <td>${log.notes || "N/A"}</td>
               </tr>
             `
@@ -450,16 +373,14 @@ export default function ExportContent() {
             <li>Use customer information above to locate account</li>
             <li>Reference connection status and affected locations for investigation</li>
             <li>Consider the issue frequency when prioritizing support tickets</li>
-            <li>Use Report ID ${reportId} for tracking and follow-up</li>
           </ul>
           <p><strong>For Customer/Caregiver:</strong></p>
           <ul>
             <li>Share this complete report with your network provider's customer service</li>
-            <li>Reference the report ID: ${reportId}</li>
+            <li>Reference the report number: SR-${Date.now().toString().slice(-6)}</li>
             <li>Keep a copy for your records</li>
-            <li>Update your Signal Diary with any resolution actions taken</li>
           </ul>
-          <p><em>This report was generated by Signal Diary - A professional tool for tracking and reporting mobile connectivity issues.</em></p>
+          <p><em>This report was generated by Signal Diary - A tool for tracking and reporting mobile connectivity issues.</em></p>
         </div>
       </body>
     </html>
@@ -470,7 +391,6 @@ export default function ExportContent() {
     printWindow.print()
   }
 
-  const connectionStatus = getConnectionStatus()
   const providerInfo = getProviderInfo()
 
   return (
@@ -513,58 +433,62 @@ export default function ExportContent() {
         {logs.length > 0 && (
           <Card
             className={`border-2 shadow-lg ${
-              connectionStatus.status.includes("Poor")
+              generateConnectionReport().connectionStatus.includes("Poor")
                 ? "border-red-200 bg-red-50"
-                : connectionStatus.status.includes("Fair")
-                  ? "border-orange-200 bg-orange-50"
-                  : connectionStatus.status.includes("Light")
-                    ? "border-yellow-200 bg-yellow-50"
-                    : "border-green-200 bg-green-50"
+                : generateConnectionReport().connectionStatus.includes("Fair")
+                  ? "border-yellow-200 bg-yellow-50"
+                  : "border-green-200 bg-green-50"
             }`}
           >
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <connectionStatus.icon
-                  className={`w-6 h-6 ${
-                    connectionStatus.status.includes("Poor")
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <Wifi
+                  className={`w-6 h-6 mt-1 ${
+                    generateConnectionReport().connectionStatus.includes("Poor")
                       ? "text-red-600"
-                      : connectionStatus.status.includes("Fair")
-                        ? "text-orange-600"
-                        : connectionStatus.status.includes("Light")
-                          ? "text-yellow-600"
-                          : "text-green-600"
+                      : generateConnectionReport().connectionStatus.includes("Fair")
+                        ? "text-yellow-600"
+                        : "text-green-600"
                   }`}
                 />
-                Connection Status Assessment
-              </CardTitle>
-              <CardDescription>Based on {logs.length} logged entries</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 mb-4">
-                <Badge className={`${connectionStatus.color} text-white`}>{connectionStatus.status}</Badge>
-                <span className="text-sm text-muted-foreground">{logs.length} total issues recorded</span>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 text-sm">
                 <div>
-                  <strong>Most Common Issue:</strong> {getMostCommonIssue()}
-                </div>
-                <div>
-                  <strong>Affected Locations:</strong> {getAffectedLocations()}
-                </div>
-                <div>
-                  <strong>Issue Frequency:</strong> {generateConnectionReport().issueFrequency}
-                </div>
-              </div>
-
-              {connectionStatus.status === "Light Issues" && (
-                <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Light Connection Issues Detected:</strong> You have logged {logs.length} connectivity
-                    issues. Consider sharing this report with your network provider if issues persist or worsen.
+                  <p
+                    className={`text-lg font-medium mb-1 ${
+                      generateConnectionReport().connectionStatus.includes("Poor")
+                        ? "text-red-800"
+                        : generateConnectionReport().connectionStatus.includes("Fair")
+                          ? "text-yellow-800"
+                          : "text-green-800"
+                    }`}
+                  >
+                    Connection Status: {generateConnectionReport().connectionStatus}
                   </p>
+                  <p
+                    className={`text-sm ${
+                      generateConnectionReport().connectionStatus.includes("Poor")
+                        ? "text-red-700"
+                        : generateConnectionReport().connectionStatus.includes("Fair")
+                          ? "text-yellow-700"
+                          : "text-green-700"
+                    }`}
+                  >
+                    {generateConnectionReport().issueFrequency}
+                  </p>
+                  {generateConnectionReport().connectionStatus !== "Good" && (
+                    <p
+                      className={`text-sm mt-1 font-medium ${
+                        generateConnectionReport().connectionStatus.includes("Poor")
+                          ? "text-red-700"
+                          : generateConnectionReport().connectionStatus.includes("Fair")
+                            ? "text-yellow-700"
+                            : "text-green-700"
+                      }`}
+                    >
+                      📋 Your report includes detailed connection analysis for provider support.
+                    </p>
+                  )}
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -578,10 +502,10 @@ export default function ExportContent() {
             <Button
               onClick={downloadCSV}
               className="w-full h-16 text-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md"
-              disabled={logs.length === 0 || isExporting}
+              disabled={logs.length === 0}
             >
               <Download className="w-8 h-8 mr-3" />
-              {isExporting ? "Generating..." : "Download Connection Report (CSV)"}
+              Download Connection Report (CSV)
             </Button>
 
             <Button
@@ -601,25 +525,15 @@ export default function ExportContent() {
             <div className="flex items-start gap-3">
               <FileText className="w-6 h-6 text-blue-600 mt-1" />
               <div>
-                <p className="text-lg text-blue-800 font-medium mb-2">Professional Network Reports</p>
+                <p className="text-lg text-blue-800 font-medium mb-2">Share with others</p>
                 <p className="text-blue-700 mb-2">
-                  Export professionally formatted reports for network provider submission and technical support.
+                  Share your exported log with a caregiver or network provider to help resolve signal issues.
                 </p>
                 {providerInfo && (
                   <p className="text-sm text-blue-600 font-medium">
                     ✓ Reports include {providerInfo.name} support information for direct routing
                   </p>
                 )}
-                <div className="mt-3 text-sm text-blue-700">
-                  <p className="font-medium">Report Features:</p>
-                  <ul className="list-disc list-inside mt-1 space-y-1">
-                    <li>Connection status assessment</li>
-                    <li>Issue frequency analysis</li>
-                    <li>Provider support information</li>
-                    <li>Professional formatting</li>
-                    <li>Unique report IDs for tracking</li>
-                  </ul>
-                </div>
               </div>
             </div>
           </CardContent>
