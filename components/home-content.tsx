@@ -211,7 +211,7 @@ export default function HomeContent() {
               <div className="space-y-3">
                 <Input
                   value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLocation(e.target.value)}
                   placeholder="Type your location (e.g., Kitchen, Porch)"
                   className="h-12 text-lg border-2 border-slate-300 rounded-lg"
                   disabled={isSubmitting}
