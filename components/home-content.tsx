@@ -112,7 +112,7 @@ export default function HomeContent() {
 
   // Get recent activity
   const recentActivity = useMemo(() => {
-    return logs.slice(0, 3).map((log) => ({
+    return logs.slice(0, 3).map((log: import("@/hooks/use-signal-diary").LogEntry) => ({
       ...log,
       issueType: ISSUE_TYPES.find((t) => t.type === log.type),
       timestamp: new Date(log.timestamp),
@@ -184,7 +184,7 @@ export default function HomeContent() {
                         <SelectItem value="header-recent" disabled className="font-semibold text-blue-600">
                           Recent Locations
                         </SelectItem>
-                        {recentLocations.map((loc) => (
+                        {recentLocations.map((loc: string) => (
                           <SelectItem key={`recent-${loc}`} value={loc} className="pl-4">
                             📍 {loc}
                           </SelectItem>
