@@ -14,7 +14,7 @@ export default function PerformanceMonitor() {
           console.log("LCP:", entry.startTime)
         }
         if (entry.entryType === "first-input") {
-          console.log("FID:", (entry as any).processingStart - entry.startTime)
+          console.log("FID:", entry.processingStart - entry.startTime)
         }
         if (entry.entryType === "layout-shift") {
           if (!(entry as any).hadRecentInput) {
