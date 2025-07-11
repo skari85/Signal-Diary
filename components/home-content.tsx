@@ -1,280 +1,324 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
+import { SignalZero, PhoneOff, MessageSquareX, History, Download, User, MapPin, Clock, TrendingUp } from "lucide-react"
+import Link from "next/link"
+import OptimizedImage from "./optimized-image"
+import PWAInstallPrompt from "./pwa-install-prompt"
+import OfflineIndicator from "./offline-indicator"
 import { useSignalDiary } from "@/hooks/use-signal-diary"
-import { useToast } from "@/hooks/use-toast"
-import { Phone, PhoneOff, MessageSquareX, MapPin, Clock, Plus } from "lucide-react"
-import { format } from "date-fns"
+import { toast } from "@/hooks/use-toast"
 
-const issueTypes = [
-  { value: "no-signal", label: "No Signal", icon: PhoneOff, color: "bg-red-500" },
-  { value: "call-failed", label: "Call Failed", icon: Phone, color: "bg-orange-500" },
-  { value: "message-failed", label: "Message Failed", icon: MessageSquareX, color: "bg-yellow-500" },
+const COMMON_LOCATIONS = [
+  "Kitchen",
+  "Living Room",
+  "Bedroom",
+  "Bathroom",
+  "Porch",
+  "Stairs",
+  "Basement",
+  "Attic",
+  "Garage",
+  "Backyard",
+  "Front Yard",
+  "Dining Room",
+  "Office",
+  "Hallway",
+  "Balcony",
+  "Other",
 ] as const
 
-export default function HomeContent() {
-  const { data, addLogEntry, isLoading } = useSignalDiary()
-  const { toast } = useToast()
+const ISSUE_TYPES = [
+  {
+    type: "no-signal" as const,
+    label: "No Signal",
+    icon: SignalZero,
+    className: "bg-red-500 hover:bg-red-600",
+    description: "Phone shows no signal bars",
+  },
+  {
+    type: "call-failed" as const,
+    label: "Call Failed",
+    icon: PhoneOff,
+    className: "bg-orange-500 hover:bg-orange-600",
+    description: "Call couldn't connect or dropped",
+  },
+  {
+    type: "message-failed" as const,
+    label: "Message Didn't Send",
+    icon: MessageSquareX,
+    className: "bg-blue-500 hover:bg-blue-600",
+    description: "Text message failed to send",
+  },
+]
 
-  const [selectedType, setSelectedType] = useState<string>("")
+export default function HomeContent() {
   const [location, setLocation] = useState("")
-  const [notes, setNotes] = useState("")
+  const [useDropdown, setUseDropdown] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const { addLogEntry, recentLocations, logs, getWeeklyStats } = useSignalDiary()
 
-    if (!selectedType || !location.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please select an issue type and enter a location.",
-        variant: "destructive",
-      })
-      return
-    }
+  // Handle adding log entry
+  const handleAddLogEntry = useCallback(
+    async (type: "no-signal" | "call-failed" | "message-failed") => {
+      if (isSubmitting) return
 
-    setIsSubmitting(true)
+      setIsSubmitting(true)
 
-    try {
-      addLogEntry(selectedType as any, location.trim(), notes.trim() || undefined)
+      try {
+        await addLogEntry(type, location)
+        setLocation("")
+        toast({
+          title: "Issue logged successfully!",
+          description: `${ISSUE_TYPES.find((t) => t.type === type)?.label} logged in ${location || "Not specified"}.`,
+        })
+      } catch (error) {
+        console.error("Error logging entry:", error)
+        toast({
+          title: "Failed to log issue",
+          description: "Please try again.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [addLogEntry, location, isSubmitting],
+  )
 
-      toast({
-        title: "Issue Logged",
-        description: `${issueTypes.find((t) => t.value === selectedType)?.label} recorded for ${location}`,
-      })
-
-      // Reset form
-      setSelectedType("")
+  // Handle location selection
+  const handleLocationSelect = useCallback((value: string) => {
+    if (value === "Other") {
+      setUseDropdown(false)
       setLocation("")
-      setNotes("")
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to log the issue. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSubmitting(false)
+    } else {
+      setLocation(value)
     }
-  }
+  }, [])
 
-  const handleQuickLocation = (quickLocation: string) => {
-    setLocation(quickLocation)
-  }
+  // Switch to dropdown
+  const switchToDropdown = useCallback(() => {
+    setUseDropdown(true)
+    setLocation("")
+  }, [])
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-4 space-y-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
-          <div className="h-48 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    )
-  }
+  // Get recent activity
+  const recentActivity = useMemo(() => {
+    return logs.slice(0, 3).map((log) => ({
+      ...log,
+      issueType: ISSUE_TYPES.find((t) => t.type === log.type),
+      timestamp: new Date(log.timestamp),
+    }))
+  }, [logs])
+
+  // Get weekly stats
+  const weeklyStats = useMemo(() => getWeeklyStats(), [getWeeklyStats])
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Signal Diary</h1>
-        <p className="text-muted-foreground">Track phone signal issues to help improve your network experience</p>
-      </div>
+    <div className="min-h-screen bg-amber-50 p-4">
+      <div className="max-w-md mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center py-4">
+          <div className="flex justify-center mb-4">
+            <OptimizedImage
+              src="/signal-diary-logo.png"
+              alt="Signal Diary Logo"
+              width={80}
+              height={80}
+              className="rounded-2xl"
+              priority
+            />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Signal Diary</h1>
+          <p className="text-lg text-slate-600">Track your phone signal issues</p>
+        </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-sm font-medium">No Signal</span>
-              <Badge variant="secondary">{data.entries.filter((e) => e.type === "no-signal").length}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-              <span className="text-sm font-medium">Call Failed</span>
-              <Badge variant="secondary">{data.entries.filter((e) => e.type === "call-failed").length}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-              <span className="text-sm font-medium">Message Failed</span>
-              <Badge variant="secondary">{data.entries.filter((e) => e.type === "message-failed").length}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Log New Issue Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5" />
-            Log New Issue
-          </CardTitle>
-          <CardDescription>Record a phone signal problem you're experiencing</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="issue-type">Issue Type</Label>
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select the type of issue" />
-                </SelectTrigger>
-                <SelectContent>
-                  {issueTypes.map((type) => {
-                    const Icon = type.icon
-                    return (
-                      <SelectItem key={type.value} value={type.value}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4" />
-                          {type.label}
-                        </div>
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Where did this happen? (e.g., Home, Main Street, Doctor's Office)"
-                className="w-full"
-              />
-
-              {/* Quick Location Buttons */}
-              {(data.recentLocations.length > 0 || data.commonLocations.length > 0) && (
-                <div className="space-y-2">
-                  {data.recentLocations.length > 0 && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Recent Locations</Label>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {data.recentLocations.slice(0, 5).map((loc, index) => (
-                          <Button
-                            key={index}
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuickLocation(loc)}
-                            className="text-xs h-7"
-                          >
-                            <Clock className="w-3 h-3 mr-1" />
-                            {loc}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {data.commonLocations.length > 0 && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Common Locations</Label>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {data.commonLocations.slice(0, 5).map((loc, index) => (
-                          <Button
-                            key={index}
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuickLocation(loc)}
-                            className="text-xs h-7"
-                          >
-                            <MapPin className="w-3 h-3 mr-1" />
-                            {loc}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+        {/* Quick Stats */}
+        {weeklyStats.total > 0 && (
+          <Card className="border-2 border-purple-200 bg-purple-50 shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3 mb-3">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+                <h2 className="text-lg font-semibold text-purple-900">This Week</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-900">{weeklyStats.total}</div>
+                  <div className="text-sm text-purple-700">Total Issues</div>
                 </div>
-              )}
-            </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-900">{weeklyStats.noSignal}</div>
+                  <div className="text-sm text-purple-700">No Signal</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any additional details about the issue..."
-                className="min-h-[80px]"
-              />
-            </div>
-
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? "Logging Issue..." : "Log Issue"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Recent Entries */}
-      {data.entries.length > 0 && (
-        <Card>
+        {/* Location Selection */}
+        <Card className="border-2 border-slate-200 shadow-lg">
           <CardHeader>
-            <CardTitle>Recent Issues</CardTitle>
-            <CardDescription>Your latest signal problems</CardDescription>
+            <CardTitle className="text-xl text-center text-slate-700 flex items-center justify-center gap-2">
+              <MapPin className="w-6 h-6" />
+              Where did it happen?
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {data.entries.slice(0, 5).map((entry) => {
-                const issueType = issueTypes.find((t) => t.value === entry.type)
-                const Icon = issueType?.icon || Phone
+          <CardContent className="space-y-4">
+            {useDropdown ? (
+              <div className="space-y-3">
+                <Select value={location} onValueChange={handleLocationSelect}>
+                  <SelectTrigger className="h-12 text-lg border-2 border-slate-300 rounded-lg">
+                    <SelectValue placeholder="Select a room or location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {recentLocations.length > 0 && (
+                      <>
+                        <SelectItem value="header-recent" disabled className="font-semibold text-blue-600">
+                          Recent Locations
+                        </SelectItem>
+                        {recentLocations.map((loc) => (
+                          <SelectItem key={`recent-${loc}`} value={loc} className="pl-4">
+                            📍 {loc}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="header-common" disabled className="font-semibold text-slate-600">
+                          Common Locations
+                        </SelectItem>
+                      </>
+                    )}
+                    {COMMON_LOCATIONS.map((loc) => (
+                      <SelectItem key={loc} value={loc}>
+                        {loc}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {location && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-blue-800 font-medium">Selected: {location}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Type your location (e.g., Kitchen, Porch)"
+                  className="h-12 text-lg border-2 border-slate-300 rounded-lg"
+                  disabled={isSubmitting}
+                />
+                <Button
+                  onClick={switchToDropdown}
+                  variant="outline"
+                  className="w-full h-10 text-sm border-2 border-slate-300 rounded-lg bg-transparent"
+                  disabled={isSubmitting}
+                >
+                  Or choose from common locations
+                </Button>
+              </div>
+            )}
+            <p className="text-sm text-slate-500 text-center">
+              {location ? "Ready to log your issue!" : "This helps identify problem areas in your home"}
+            </p>
+          </CardContent>
+        </Card>
 
-                return (
-                  <div key={entry.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${issueType?.color || "bg-gray-500"}`}
-                    >
-                      <Icon className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{issueType?.label}</span>
-                        <span className="text-sm text-muted-foreground">at {entry.location}</span>
+        {/* Main Action Buttons */}
+        <Card className="border-2 border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl text-center text-slate-700">What happened?</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {ISSUE_TYPES.map((issue) => {
+              const Icon = issue.icon
+              return (
+                <Button
+                  key={issue.type}
+                  onClick={() => handleAddLogEntry(issue.type)}
+                  className={`w-full h-16 text-xl text-white font-semibold rounded-xl shadow-md ${issue.className}`}
+                  disabled={isSubmitting}
+                >
+                  <Icon className="w-8 h-8 mr-3" />
+                  <div className="text-left">
+                    <div className="font-bold">{issue.label}</div>
+                    <div className="text-sm opacity-90">{issue.description}</div>
+                  </div>
+                </Button>
+              )
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        {recentActivity.length > 0 && (
+          <Card className="border-2 border-slate-200 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Clock className="w-5 h-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentActivity.map((log) => (
+                  <div key={log.id} className="p-3 rounded-lg border bg-gray-50">
+                    <div className="flex items-start gap-3">
+                      {log.issueType?.icon && <log.issueType.icon className="w-5 h-5 mt-0.5 text-slate-600" />}
+                      <div className="flex-1">
+                        <div className="font-medium text-slate-800">{log.issueType?.label}</div>
+                        <div className="text-sm text-slate-600">
+                          {log.location} • {log.timestamp.toLocaleDateString()} at{" "}
+                          {log.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {format(entry.timestamp, "MMM d, yyyy h:mm a")}
-                      </div>
-                      {entry.notes && <div className="text-sm mt-1 text-muted-foreground">{entry.notes}</div>}
                     </div>
                   </div>
-                )
-              })}
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-              {data.entries.length > 5 && (
-                <div className="text-center pt-2">
-                  <Button variant="outline" size="sm">
-                    View All Issues ({data.entries.length})
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        {/* Navigation Buttons */}
+        <div className="grid grid-cols-3 gap-3">
+          <Link href="/history">
+            <Button className="w-full h-14 text-base bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-xl shadow-md">
+              <History className="w-5 h-5 mr-1" />
+              History
+            </Button>
+          </Link>
+
+          <Link href="/patterns">
+            <Button className="w-full h-14 text-base bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl shadow-md">
+              📊 Patterns
+            </Button>
+          </Link>
+
+          <Link href="/export">
+            <Button className="w-full h-14 text-base bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md">
+              <Download className="w-5 h-5 mr-1" />
+              Export
+            </Button>
+          </Link>
+        </div>
+
+        <Link href="/settings">
+          <Button className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-md">
+            <User className="w-5 h-5 mr-2" />
+            Settings
+          </Button>
+        </Link>
+
+        {/* PWA Components */}
+        <PWAInstallPrompt />
+        <OfflineIndicator />
+      </div>
     </div>
   )
 }

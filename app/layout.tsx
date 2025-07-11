@@ -1,61 +1,51 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import PerformanceMonitor from "@/components/performance-monitor"
 import { Toaster } from "@/components/ui/toaster"
 import { Analytics } from "@vercel/analytics/react"
 import { Suspense } from "react"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  preload: true,
+})
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://signaldiary.vercel.app"),
   title: "Signal Diary - Track Phone Signal Issues",
-  description:
-    "Help elderly users and caregivers document phone signal problems with an easy-to-use diary. Generate professional reports for network providers.",
-  keywords: ["phone signal", "elderly", "caregivers", "network issues", "signal tracking"],
-  authors: [{ name: "Signal Diary Team" }],
-  creator: "Signal Diary",
-  publisher: "Signal Diary",
+  description: "A simple app to help elderly users log and track phone signal problems",
+  manifest: "/manifest.json",
   formatDetection: {
-    email: false,
-    address: false,
     telephone: false,
   },
-  openGraph: {
-    title: "Signal Diary - Track Phone Signal Issues",
-    description: "Help elderly users and caregivers document phone signal problems with an easy-to-use diary.",
-    url: "https://signaldiary.vercel.app",
-    siteName: "Signal Diary",
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Signal Diary - Track Phone Signal Issues",
-    description: "Help elderly users and caregivers document phone signal problems with an easy-to-use diary.",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      { url: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
   },
-    generator: 'v0.dev'
+  generator: "v0.dev",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Signal Diary",
+  },
+  metadataBase: new URL("https://signaldiary.vercel.app"),
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#f59e0b",
 }
 
 export default function RootLayout({
@@ -64,25 +54,58 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
-        <link rel="icon" href="/icons/favicon.ico" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-        <meta name="theme-color" content="#ea580c" />
+        {/* PWA Meta Tags */}
+        <meta name="application-name" content="Signal Diary" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Signal Diary" />
+        <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#ea580c" />
         <meta name="msapplication-config" content="/icons/browserconfig.xml" />
+        <meta name="msapplication-TileColor" content="#f59e0b" />
+        <meta name="msapplication-tap-highlight" content="no" />
+
+        {/* Apple Touch Icons */}
+        <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+
+        {/* Favicon */}
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+
+        {/* Preload critical resources */}
+        <link rel="preload" href="/icons/icon-192x192.png" as="image" />
+        <link rel="preload" href="/signal-diary-logo.png" as="image" />
+
+        {/* Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                      console.log('SW registration failed: ', registrationError);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className={inter.className}>
         <Suspense fallback={null}>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-            {children}
-            <Toaster />
-            <Analytics />
-          </ThemeProvider>
+          {children}
+          <PerformanceMonitor />
+          <Toaster />
+          <Analytics />
         </Suspense>
       </body>
     </html>

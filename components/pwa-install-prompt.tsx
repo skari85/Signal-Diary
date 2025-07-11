@@ -2,60 +2,72 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Download, X } from "lucide-react"
-import { usePWA } from "@/hooks/use-pwa"
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
+}
 
 export default function PWAInstallPrompt() {
-  const { canInstall, install, isInstalled } = usePWA()
-  const [isDismissed, setIsDismissed] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [showPrompt, setShowPrompt] = useState(false)
 
   useEffect(() => {
-    const dismissed = localStorage.getItem("pwa-install-dismissed")
-    if (dismissed) {
-      setIsDismissed(true)
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e as BeforeInstallPromptEvent)
+      setShowPrompt(true)
+    }
+
+    window.addEventListener("beforeinstallprompt", handler)
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler)
     }
   }, [])
 
-  const handleDismiss = () => {
-    setIsDismissed(true)
-    localStorage.setItem("pwa-install-dismissed", "true")
-  }
-
   const handleInstall = async () => {
-    const success = await install()
-    if (success) {
-      setIsDismissed(true)
+    if (!deferredPrompt) return
+
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+
+    if (outcome === "accepted") {
+      setDeferredPrompt(null)
+      setShowPrompt(false)
     }
   }
 
-  if (!canInstall || isInstalled || isDismissed) {
+  const handleDismiss = () => {
+    setShowPrompt(false)
+    setDeferredPrompt(null)
+  }
+
+  if (!showPrompt || !deferredPrompt) {
     return null
   }
 
   return (
-    <Card className="fixed bottom-4 left-4 right-4 z-50 shadow-lg border-2 md:left-auto md:right-4 md:w-80">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Download className="w-5 h-5 text-orange-600" />
-            <CardTitle className="text-lg">Install Signal Diary</CardTitle>
+    <Card className="border-blue-200 bg-blue-50 shadow-lg">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <Download className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-blue-900 mb-1">Install Signal Diary</h3>
+            <p className="text-sm text-blue-800 mb-3">
+              Install this app on your device for quick access and offline use.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={handleInstall} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+                Install App
+              </Button>
+              <Button onClick={handleDismiss} variant="outline" size="sm" className="bg-transparent">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleDismiss} className="h-6 w-6 p-0">
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-        <CardDescription>Install the app for quick access and offline use</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="flex gap-2">
-          <Button onClick={handleInstall} className="flex-1">
-            <Download className="w-4 h-4 mr-2" />
-            Install
-          </Button>
-          <Button variant="outline" onClick={handleDismiss}>
-            Not now
-          </Button>
         </div>
       </CardContent>
     </Card>

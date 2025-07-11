@@ -2,18 +2,14 @@
 
 import Image from "next/image"
 import { useState } from "react"
-import { cn } from "@/lib/utils"
 
 interface OptimizedImageProps {
   src: string
   alt: string
-  width?: number
-  height?: number
+  width: number
+  height: number
   className?: string
   priority?: boolean
-  fill?: boolean
-  sizes?: string
-  quality?: number
 }
 
 export default function OptimizedImage({
@@ -21,47 +17,36 @@ export default function OptimizedImage({
   alt,
   width,
   height,
-  className,
+  className = "",
   priority = false,
-  fill = false,
-  sizes,
-  quality = 75,
-  ...props
 }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
 
   if (hasError) {
     return (
-      <div
-        className={cn("flex items-center justify-center bg-gray-100 text-gray-400", className)}
-        style={{ width, height }}
-      >
-        <span className="text-sm">Image not available</span>
+      <div className={`bg-gray-200 flex items-center justify-center ${className}`} style={{ width, height }}>
+        <span className="text-gray-500 text-sm">Image not found</span>
       </div>
     )
   }
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
+    <div className={`relative ${className}`} style={{ width, height }}>
+      {isLoading && <div className="absolute inset-0 bg-gray-200 animate-pulse rounded" style={{ width, height }} />}
       <Image
         src={src || "/placeholder.svg"}
         alt={alt}
-        width={fill ? undefined : width}
-        height={fill ? undefined : height}
-        fill={fill}
+        width={width}
+        height={height}
         priority={priority}
-        quality={quality}
-        sizes={sizes}
-        className={cn("transition-opacity duration-300", isLoading ? "opacity-0" : "opacity-100")}
+        className={`${isLoading ? "opacity-0" : "opacity-100"} transition-opacity duration-300 ${className}`}
         onLoad={() => setIsLoading(false)}
         onError={() => {
-          setIsLoading(false)
           setHasError(true)
+          setIsLoading(false)
         }}
-        {...props}
       />
-      {isLoading && <div className="absolute inset-0 bg-gray-200 animate-pulse" style={{ width, height }} />}
     </div>
   )
 }

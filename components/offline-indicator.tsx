@@ -1,46 +1,64 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { WifiOff } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { WifiOff, Wifi } from "lucide-react"
 
 export default function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(true)
-  const [showOfflineMessage, setShowOfflineMessage] = useState(false)
+  const [showIndicator, setShowIndicator] = useState(false)
 
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true)
-      setShowOfflineMessage(false)
+    const updateOnlineStatus = () => {
+      const online = navigator.onLine
+      setIsOnline(online)
+
+      if (!online) {
+        setShowIndicator(true)
+      } else {
+        // Show "back online" message briefly
+        if (!isOnline) {
+          setShowIndicator(true)
+          setTimeout(() => setShowIndicator(false), 3000)
+        }
+      }
     }
 
-    const handleOffline = () => {
-      setIsOnline(false)
-      setShowOfflineMessage(true)
-    }
+    // Set initial status
+    updateOnlineStatus()
 
-    // Set initial state
-    setIsOnline(navigator.onLine)
-
-    window.addEventListener("online", handleOnline)
-    window.addEventListener("offline", handleOffline)
+    window.addEventListener("online", updateOnlineStatus)
+    window.addEventListener("offline", updateOnlineStatus)
 
     return () => {
-      window.removeEventListener("online", handleOnline)
-      window.removeEventListener("offline", handleOffline)
+      window.removeEventListener("online", updateOnlineStatus)
+      window.removeEventListener("offline", updateOnlineStatus)
     }
-  }, [])
+  }, [isOnline])
 
-  if (!showOfflineMessage) {
+  if (!showIndicator) {
     return null
   }
 
   return (
-    <Alert className="fixed top-4 left-4 right-4 z-50 shadow-lg md:left-auto md:right-4 md:w-80">
-      <WifiOff className="h-4 w-4" />
-      <AlertDescription>
-        You're offline. The app will continue to work, and your data will sync when you're back online.
-      </AlertDescription>
-    </Alert>
+    <Card
+      className={`border-2 shadow-lg ${isOnline ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"}`}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          {isOnline ? <Wifi className="w-6 h-6 text-green-600" /> : <WifiOff className="w-6 h-6 text-orange-600" />}
+          <div>
+            <h3 className={`font-semibold ${isOnline ? "text-green-900" : "text-orange-900"}`}>
+              {isOnline ? "Back Online" : "You're Offline"}
+            </h3>
+            <p className={`text-sm ${isOnline ? "text-green-800" : "text-orange-800"}`}>
+              {isOnline
+                ? "Your connection has been restored."
+                : "Don't worry - you can still log signal issues. They'll be saved locally."}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
