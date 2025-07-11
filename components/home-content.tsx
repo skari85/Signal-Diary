@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// Explicit icons requested (may be unused)
+import { Signal as _Signal, Phone as _Phone, BarChart3 as _BarChart3 } from "lucide-react"
 import { SignalZero, PhoneOff, MessageSquareX, History, Download, User, MapPin, Clock, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import OptimizedImage from "./optimized-image"
