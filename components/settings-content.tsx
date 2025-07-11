@@ -226,18 +226,21 @@ export default function SettingsContent() {
             </div>
 
             {showCustomProvider && (
-              <div>
-                <Label htmlFor="custom-provider" className="text-sm font-medium">
-                  Enter Provider Name
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
+                <Label htmlFor="custom-provider" className="text-sm font-medium text-amber-800">
+                  Enter Your Network Provider Name
                 </Label>
                 <Input
                   id="custom-provider"
                   type="text"
-                  placeholder="Enter your provider name"
+                  placeholder="e.g., Regional Mobile, Local Carrier, etc."
                   value={customProvider}
                   onChange={(e) => setCustomProvider(e.target.value)}
-                  className="mt-1 text-lg h-12"
+                  className="mt-2 text-lg h-12 border-amber-300 focus:border-amber-500"
                 />
+                <p className="text-xs text-amber-700 mt-2">
+                  💡 This custom provider will be saved and used in your exported reports.
+                </p>
               </div>
             )}
 
