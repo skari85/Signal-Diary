@@ -126,7 +126,7 @@ export default function HomeContent() {
         <div className="text-center py-4">
           <div className="flex justify-center mb-4">
             <OptimizedImage
-              src="/signal-diary-logo.png"
+              src="/icons/icon-192x192.png"
               alt="Signal Diary Logo"
               width={80}
               height={80}

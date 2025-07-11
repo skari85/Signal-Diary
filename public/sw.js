@@ -7,8 +7,7 @@ const STATIC_FILES = [
   '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/signal-diary-logo.png',
+  '/icons/icon-192x192.png',
   '/offline.html'
 ]
 

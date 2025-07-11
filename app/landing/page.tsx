@@ -17,7 +17,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img src="/signal-diary-logo.png" alt="Signal Diary Logo" width={60} height={60} className="rounded-lg" />
+              <img src="/icons/icon-192x192.png" alt="Signal Diary Logo" width={60} height={60} className="rounded-lg" />
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Signal Diary</h1>
                 <p className="text-gray-600">Track your phone signal issues</p>

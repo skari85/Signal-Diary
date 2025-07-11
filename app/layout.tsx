@@ -21,14 +21,8 @@ export const metadata: Metadata = {
     telephone: false,
   },
   icons: {
-    icon: [
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: [
-      { url: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png" },
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-    ],
+    icon: [{ url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" }],
   },
   generator: "v0.dev",
   appleWebApp: {
@@ -67,19 +61,16 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#f59e0b" />
         <meta name="msapplication-tap-highlight" content="no" />
 
-        {/* Apple Touch Icons */}
-        <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+        {/* Apple / Favicon */}
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-192x192.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
 
         {/* Favicon */}
-        <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
-        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" href="/icons/icon-192x192.png" />
 
         {/* Preload critical resources */}
         <link rel="preload" href="/icons/icon-192x192.png" as="image" />
-        <link rel="preload" href="/signal-diary-logo.png" as="image" />
 
         {/* Service Worker Registration */}
         <script
