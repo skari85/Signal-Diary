@@ -287,33 +287,45 @@ export default function HomeContent() {
 
         {/* Navigation Buttons */}
         <div className="grid grid-cols-3 gap-3">
-          <Link href="/history">
-            <Button className="w-full h-14 text-base bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-xl shadow-md">
+          <Button
+            asChild
+            className="w-full h-16 text-lg bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-xl shadow-md"
+          >
+            <Link href="/history" prefetch>
               <History className="w-5 h-5 mr-1" />
               History
-            </Button>
-          </Link>
+            </Link>
+          </Button>
 
-          <Link href="/patterns">
-            <Button className="w-full h-14 text-base bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl shadow-md">
+          <Button
+            asChild
+            className="w-full h-16 text-lg bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl shadow-md"
+          >
+            <Link href="/patterns" prefetch>
               📊 Patterns
-            </Button>
-          </Link>
+            </Link>
+          </Button>
 
-          <Link href="/export">
-            <Button className="w-full h-14 text-base bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md">
+          <Button
+            asChild
+            className="w-full h-16 text-lg bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-md"
+          >
+            <Link href="/export" prefetch>
               <Download className="w-5 h-5 mr-1" />
               Export
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
-        <Link href="/settings">
-          <Button className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-md">
+        <Button
+          asChild
+          className="w-full h-14 text-lg bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-md"
+        >
+          <Link href="/settings" prefetch>
             <User className="w-5 h-5 mr-2" />
             Settings
-          </Button>
-        </Link>
+          </Link>
+        </Button>
 
         {/* PWA Components */}
         <PWAInstallPrompt />
