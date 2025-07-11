@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SignalZero, PhoneOff, MessageSquareX, History, Download, User, MapPin, Clock, TrendingUp } from "lucide-react"
+import { SignalZero, PhoneOff, MessageSquareX, History, Download, User, MapPin } from "lucide-react"
 import Link from "next/link"
 import OptimizedImage from "./optimized-image"
+
+// Add these imports at the top
 import PWAInstallPrompt from "./pwa-install-prompt"
 import OfflineIndicator from "./offline-indicator"
 import { useSignalDiary } from "@/hooks/use-signal-diary"
@@ -32,66 +34,39 @@ const COMMON_LOCATIONS = [
   "Other",
 ] as const
 
-const ISSUE_TYPES = [
-  {
-    type: "no-signal" as const,
-    label: "No Signal",
-    icon: SignalZero,
-    className: "bg-red-500 hover:bg-red-600",
-    description: "Phone shows no signal bars",
-  },
-  {
-    type: "call-failed" as const,
-    label: "Call Failed",
-    icon: PhoneOff,
-    className: "bg-orange-500 hover:bg-orange-600",
-    description: "Call couldn't connect or dropped",
-  },
-  {
-    type: "message-failed" as const,
-    label: "Message Didn't Send",
-    icon: MessageSquareX,
-    className: "bg-blue-500 hover:bg-blue-600",
-    description: "Text message failed to send",
-  },
-]
-
 export default function HomeContent() {
   const [location, setLocation] = useState("")
   const [useDropdown, setUseDropdown] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const { addLogEntry, recentLocations } = useSignalDiary()
 
-  const { addLogEntry, recentLocations, logs, getWeeklyStats } = useSignalDiary()
+  // Memoize the addLogEntry function
+  const handleAddLogEntry = useCallback(async (type: "no-signal" | "call-failed" | "message-failed") => {
+    if (isSubmitting) return
+    
+    setIsSubmitting(true)
+    
+    try {
+      await addLogEntry(type, location)
+      setLocation("")
+      toast({
+        title: "Log submitted!",
+        description: `Issue logged successfully in ${location || "Not specified"}.`,
+      })
+    } catch (error) {
+      console.error('Error logging entry:', error)
+      toast({
+        title: "Failed to log issue",
+        description: "Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [addLogEntry, location, isSubmitting])
 
-  // Handle adding log entry
-  const handleAddLogEntry = useCallback(
-    async (type: "no-signal" | "call-failed" | "message-failed") => {
-      if (isSubmitting) return
-
-      setIsSubmitting(true)
-
-      try {
-        await addLogEntry(type, location)
-        setLocation("")
-        toast({
-          title: "Issue logged successfully!",
-          description: `${ISSUE_TYPES.find((t) => t.type === type)?.label} logged in ${location || "Not specified"}.`,
-        })
-      } catch (error) {
-        console.error("Error logging entry:", error)
-        toast({
-          title: "Failed to log issue",
-          description: "Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsSubmitting(false)
-      }
-    },
-    [addLogEntry, location, isSubmitting],
-  )
-
-  // Handle location selection
+  // Memoize location select handler
   const handleLocationSelect = useCallback((value: string) => {
     if (value === "Other") {
       setUseDropdown(false)
@@ -101,23 +76,36 @@ export default function HomeContent() {
     }
   }, [])
 
-  // Switch to dropdown
+  // Memoize switch to dropdown handler
   const switchToDropdown = useCallback(() => {
     setUseDropdown(true)
     setLocation("")
   }, [])
 
-  // Get recent activity
-  const recentActivity = useMemo(() => {
-    return logs.slice(0, 3).map((log) => ({
-      ...log,
-      issueType: ISSUE_TYPES.find((t) => t.type === log.type),
-      timestamp: new Date(log.timestamp),
-    }))
-  }, [logs])
-
-  // Get weekly stats
-  const weeklyStats = useMemo(() => getWeeklyStats(), [getWeeklyStats])
+  // Memoize action buttons to prevent unnecessary re-renders
+  const actionButtons = useMemo(() => [
+    {
+      type: "no-signal" as const,
+      label: "No Signal",
+      icon: SignalZero,
+      className: "bg-red-500 hover:bg-red-600",
+      disabled: isSubmitting
+    },
+    {
+      type: "call-failed" as const,
+      label: "Call Failed", 
+      icon: PhoneOff,
+      className: "bg-orange-500 hover:bg-orange-600",
+      disabled: isSubmitting
+    },
+    {
+      type: "message-failed" as const,
+      label: "Message Didn't Send",
+      icon: MessageSquareX,
+      className: "bg-blue-500 hover:bg-blue-600", 
+      disabled: isSubmitting
+    }
+  ], [isSubmitting])
 
   return (
     <div className="min-h-screen bg-amber-50 p-4">
@@ -137,28 +125,6 @@ export default function HomeContent() {
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Signal Diary</h1>
           <p className="text-lg text-slate-600">Track your phone signal issues</p>
         </div>
-
-        {/* Quick Stats */}
-        {weeklyStats.total > 0 && (
-          <Card className="border-2 border-purple-200 bg-purple-50 shadow-lg">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-3">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-                <h2 className="text-lg font-semibold text-purple-900">This Week</h2>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-900">{weeklyStats.total}</div>
-                  <div className="text-sm text-purple-700">Total Issues</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-900">{weeklyStats.noSignal}</div>
-                  <div className="text-sm text-purple-700">No Signal</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Location Selection */}
         <Card className="border-2 border-slate-200 shadow-lg">
@@ -235,55 +201,19 @@ export default function HomeContent() {
             <CardTitle className="text-xl text-center text-slate-700">What happened?</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {ISSUE_TYPES.map((issue) => {
-              const Icon = issue.icon
-              return (
-                <Button
-                  key={issue.type}
-                  onClick={() => handleAddLogEntry(issue.type)}
-                  className={`w-full h-16 text-xl text-white font-semibold rounded-xl shadow-md ${issue.className}`}
-                  disabled={isSubmitting}
-                >
-                  <Icon className="w-8 h-8 mr-3" />
-                  <div className="text-left">
-                    <div className="font-bold">{issue.label}</div>
-                    <div className="text-sm opacity-90">{issue.description}</div>
-                  </div>
-                </Button>
-              )
-            })}
+            {actionButtons.map(({ type, label, icon: Icon, className, disabled }) => (
+              <Button
+                key={type}
+                onClick={() => handleAddLogEntry(type)}
+                className={`w-full h-16 text-xl text-white font-semibold rounded-xl shadow-md ${className}`}
+                disabled={disabled}
+              >
+                <Icon className="w-8 h-8 mr-3" />
+                {label}
+              </Button>
+            ))}
           </CardContent>
         </Card>
-
-        {/* Recent Activity */}
-        {recentActivity.length > 0 && (
-          <Card className="border-2 border-slate-200 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Clock className="w-5 h-5" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentActivity.map((log) => (
-                  <div key={log.id} className="p-3 rounded-lg border bg-gray-50">
-                    <div className="flex items-start gap-3">
-                      {log.issueType?.icon && <log.issueType.icon className="w-5 h-5 mt-0.5 text-slate-600" />}
-                      <div className="flex-1">
-                        <div className="font-medium text-slate-800">{log.issueType?.label}</div>
-                        <div className="text-sm text-slate-600">
-                          {log.location} • {log.timestamp.toLocaleDateString()} at{" "}
-                          {log.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Navigation Buttons */}
         <div className="grid grid-cols-3 gap-3">

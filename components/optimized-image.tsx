@@ -1,7 +1,7 @@
 "use client"
 
-import Image from "next/image"
-import { useState } from "react"
+import Image from 'next/image'
+import { useState } from 'react'
 
 interface OptimizedImageProps {
   src: string
@@ -10,6 +10,9 @@ interface OptimizedImageProps {
   height: number
   className?: string
   priority?: boolean
+  placeholder?: 'blur' | 'empty'
+  blurDataURL?: string
+  fallbackSrc?: string
 }
 
 export default function OptimizedImage({
@@ -17,35 +20,52 @@ export default function OptimizedImage({
   alt,
   width,
   height,
-  className = "",
+  className = '',
   priority = false,
+  placeholder = 'empty',
+  blurDataURL,
+  fallbackSrc = '/placeholder.jpg',
 }: OptimizedImageProps) {
+  const [imageSrc, setImageSrc] = useState(src)
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
 
-  if (hasError) {
-    return (
-      <div className={`bg-gray-200 flex items-center justify-center ${className}`} style={{ width, height }}>
-        <span className="text-gray-500 text-sm">Image not found</span>
-      </div>
-    )
+  const handleLoad = () => {
+    setIsLoading(false)
+    setHasError(false)
+  }
+
+  const handleError = () => {
+    if (imageSrc !== fallbackSrc) {
+      setImageSrc(fallbackSrc)
+      setHasError(true)
+    } else {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className={`relative ${className}`} style={{ width, height }}>
-      {isLoading && <div className="absolute inset-0 bg-gray-200 animate-pulse rounded" style={{ width, height }} />}
+    <div className={`relative ${className}`}>
+      {isLoading && (
+        <div 
+          className="absolute inset-0 bg-gray-200 animate-pulse rounded"
+          style={{ width, height }}
+        />
+      )}
       <Image
-        src={src || "/placeholder.svg"}
+        src={imageSrc}
         alt={alt}
         width={width}
         height={height}
+        className={`transition-opacity duration-300 ${
+          isLoading ? 'opacity-0' : 'opacity-100'
+        } ${hasError ? 'grayscale' : ''}`}
         priority={priority}
-        className={`${isLoading ? "opacity-0" : "opacity-100"} transition-opacity duration-300 ${className}`}
-        onLoad={() => setIsLoading(false)}
-        onError={() => {
-          setHasError(true)
-          setIsLoading(false)
-        }}
+        placeholder={placeholder}
+        blurDataURL={blurDataURL}
+        onLoad={handleLoad}
+        onError={handleError}
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
       />
     </div>
   )
